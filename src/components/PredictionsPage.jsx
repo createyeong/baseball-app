@@ -18,9 +18,10 @@ export default function PredictionsPage() {
   const [score, setScore] = useState({ d: null, k: null, inning: null, half: '초', status: '경기 전', predictions_locked: false })
   const [modalOpen, setModalOpen] = useState(false)
   const [gearMenu, setGearMenu] = useState(false)
-  const [pinTarget, setPinTarget] = useState(null) // 'score' | 'delete'
+  const [pinTarget, setPinTarget] = useState(null) // 'score' | 'delete' | 'late'
   const [scoreModal, setScoreModal] = useState(false)
   const [deleteModal, setDeleteModal] = useState(false)
+  const [lateModal, setLateModal] = useState(false)
   const [adminPassword, setAdminPassword] = useState('')
 
   const fetchPreds = useCallback(async () => {
@@ -75,6 +76,7 @@ export default function PredictionsPage() {
     setAdminPassword(password)
     if (pinTarget === 'score') setScoreModal(true)
     if (pinTarget === 'delete') setDeleteModal(true)
+    if (pinTarget === 'late') setLateModal(true)
     setPinTarget(null)
   }
 
@@ -174,6 +176,7 @@ export default function PredictionsPage() {
       {pinTarget && createPortal(<PinModal onClose={() => setPinTarget(null)} onSuccess={handlePinSuccess} />, document.body)}
       {scoreModal && createPortal(<ScoreModal score={score} password={adminPassword} onClose={() => setScoreModal(false)} onSaved={() => { setScoreModal(false); fetchScore() }} />, document.body)}
       {deleteModal && createPortal(<DeleteModal preds={preds} password={adminPassword} locked={score.predictions_locked} onClose={() => setDeleteModal(false)} onDeleted={fetchPreds} onToggleLock={fetchScore} />, document.body)}
+      {lateModal && createPortal(<LateListModal onClose={() => setLateModal(false)} />, document.body)}
     </div>
   )
 }
@@ -250,6 +253,15 @@ function GearMenu({ onClose, onSelect }) {
             <div>
               <div style={s.menuLabel}>예측 삭제하기</div>
               <div style={s.menuSub}>잘못 올려진 예측을 삭제해요</div>
+            </div>
+            <span style={{ fontSize: 16, color: 'var(--g)' }}>›</span>
+          </button>
+          <div style={{ height: 1, background: 'var(--sep2)', margin: '0 18px' }} />
+          <button style={s.menuItem} onClick={() => onSelect('late')}>
+            <span style={s.menuIcon}>⏰</span>
+            <div>
+              <div style={s.menuLabel}>늦은 도착 명단</div>
+              <div style={s.menuSub}>늦게 도착 예정인 인원 확인</div>
             </div>
             <span style={{ fontSize: 16, color: 'var(--g)' }}>›</span>
           </button>
@@ -533,6 +545,53 @@ function ScoreModal({ score, password, onClose, onSaved }) {
           <button type="button" disabled={saving} style={{ ...s.modalSubmit, opacity: saving ? .5 : 1 }} onClick={save}>
             {saving ? '저장 중…' : '저장'}
           </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function LateListModal({ onClose }) {
+  const [rows, setRows] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    supabase.from('late_arrivals').select('*').order('created_at', { ascending: true })
+      .then(({ data }) => { setRows(data || []); setLoading(false) })
+  }, [])
+
+  async function remove(name) {
+    await supabase.from('late_arrivals').delete().eq('name', name)
+    setRows(r => r.filter(x => x.name !== name))
+  }
+
+  return (
+    <div style={s.modalOv}>
+      <div style={s.modalSheet}>
+        <div style={s.modalHandle} />
+        <div style={s.modalHdr}>
+          <span style={s.modalTtl}>⏰ 늦은 도착 명단 ({rows.length})</span>
+          <button style={s.modalX} onClick={onClose}>✕</button>
+        </div>
+        <div style={s.modalBody}>
+          {loading && <div style={{ color: 'var(--g)', textAlign: 'center', padding: 20 }}>불러오는 중…</div>}
+          {!loading && rows.length === 0 && (
+            <div style={{ color: 'var(--g)', textAlign: 'center', padding: 20 }}>등록된 늦은 도착이 없어요</div>
+          )}
+          {rows.map(r => (
+            <div key={r.name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--sep2)' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--w)' }}>{r.name}</div>
+                <div style={{ fontSize: 12, color: 'var(--g)', marginTop: 2 }}>
+                  {r.arrival_time}{r.message ? ` · ${r.message}` : ''}
+                </div>
+              </div>
+              <button
+                onClick={() => remove(r.name)}
+                style={{ background: 'var(--k-light)', color: 'var(--k)', border: 'none', borderRadius: 'var(--rxs)', padding: '5px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--body)' }}
+              >삭제</button>
+            </div>
+          ))}
         </div>
       </div>
     </div>
