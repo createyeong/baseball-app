@@ -23,17 +23,19 @@ export default function HomePage({ onNav }) {
           </div>
           {/* 인포 */}
           <div style={s.heroBody}>
-            <InfoRow icon="🕕" label="집합 시간" value="오후 6:15 (경기 6:30)" />
+            <InfoRow icon="🎟️" label="티켓 수령" value="오후 6시 10분" />
+            <InfoRow icon="⚾" label="경기 시작" value="오후 6시 30분" />
             <InfoRow icon="📍" label="장소" value="잠실야구장" />
             <InfoRow icon="🪑" label="좌석" value="317구역 · 중앙 네이비석" />
-            <InfoRow icon="🚇" label="교통" value="잠실역 2·5호선 / 잠실새내역 2호선" />
+            <InfoRow icon="🚇" label="교통" value="종합운동장역 2·9호선" />
           </div>
         </div>
 
         {/* 퀵 버튼 */}
-        <QuickBtn emoji="🪑" title="자리 확인" sub="내 좌석 번호 찾기" onClick={() => onNav(1)} />
-        <QuickBtn emoji="⚾" title="예측 참여" sub="승리팀·점수 예측하기" onClick={() => onNav(2)} />
-        <QuickBtn emoji="🍗" title="먹거리 탐색" sub="잠실 맛집 & 꿀팁" onClick={() => onNav(3)} />
+        <QuickBtn emoji="🎟️" title="입장 안내" sub="티켓 수령 & 늦은 도착 등록" onClick={() => onNav(1)} />
+        <QuickBtn emoji="🪑" title="자리 확인" sub="내 좌석 번호 찾기" onClick={() => onNav(2)} />
+        <QuickBtn emoji="⚾" title="예측 참여" sub="승리팀·점수 예측하기" onClick={() => onNav(3)} />
+        <QuickBtn emoji="🍗" title="먹거리 탐색" sub="잠실 맛집 & 꿀팁" onClick={() => onNav(4)} />
       </div>
     </div>
   )

@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import HomePage from './components/HomePage'
+import EntryPage from './components/EntryPage'
 import SeatsPage from './components/SeatsPage'
 import PredictionsPage from './components/PredictionsPage'
 import FoodPage from './components/FoodPage'
 
-const TABS = ['홈', '자리', '예측', '먹거리']
+const TABS = ['홈', '입장', '자리', '예측', '먹거리']
 
 export default function App() {
   const [tab, setTab] = useState(0)
@@ -34,6 +35,7 @@ export default function App() {
       <div style={s.pw}>
         <div style={{ ...s.slider, transform: `translateX(-${tab * 100}%)` }}>
           <HomePage onNav={setTab} />
+          <EntryPage />
           <SeatsPage />
           <PredictionsPage />
           <FoodPage />
@@ -47,7 +49,7 @@ const s = {
   nav: { position: 'relative', zIndex: 10, height: 52, background: 'rgba(242,242,247,.95)', backdropFilter: 'saturate(180%) blur(20px)', WebkitBackdropFilter: 'saturate(180%) blur(20px)', borderBottom: '1px solid var(--sep)', display: 'flex', alignItems: 'center', padding: '0 14px', flexShrink: 0 },
   navLogo: { fontSize: 14, fontWeight: 800, color: 'var(--w)', marginRight: 'auto', letterSpacing: '-.3px', lineHeight: 1.2 },
   navTabs: { display: 'flex', gap: 2 },
-  navTab: { fontSize: 12, fontWeight: 500, color: 'var(--g)', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 9px', borderRadius: 8, transition: 'all .15s', whiteSpace: 'nowrap', fontFamily: 'var(--body)' },
+  navTab: { fontSize: 11, fontWeight: 500, color: 'var(--g)', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 7px', borderRadius: 8, transition: 'all .15s', whiteSpace: 'nowrap', fontFamily: 'var(--body)' },
   navTabActive: { color: 'var(--d)', background: 'var(--d-light)', fontWeight: 700 },
   pw: { flex: 1, overflow: 'hidden', position: 'relative' },
   slider: { display: 'flex', height: '100%', transition: 'transform .38s cubic-bezier(.4,0,.2,1)' },

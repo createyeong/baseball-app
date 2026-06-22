@@ -62,27 +62,6 @@ export default function SeatsPage() {
           <div style={s.gateT3}>317구역 — 네이비석 중앙</div>
         </div>
 
-        {/* 입장 안내 카드 */}
-        <div style={s.entryCard}>
-          <div style={s.entryTitle}>🎟️ 입장 안내</div>
-          <div style={s.entryRow}>
-            <span style={s.entryIcon}>🎟️</span>
-            <div>
-              <div style={s.entryLabel}>티켓 수령</div>
-              <div style={s.entryValue}>종합운동장역 6번 출구 앞 공터</div>
-              <div style={s.entrySub}>18:10부터 수령 시작</div>
-            </div>
-          </div>
-          <div style={s.entryDivider} />
-          <div style={s.entryRow}>
-            <span style={s.entryIcon}>⚠️</span>
-            <div>
-              <div style={s.entryLabel}>늦게 도착하시는 분</div>
-              <div style={s.entryValue}>18:30 이후 도착 예정이시면</div>
-              <div style={s.entrySub}>미리 연락 주세요 — 별도 안내드릴게요</div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   )
