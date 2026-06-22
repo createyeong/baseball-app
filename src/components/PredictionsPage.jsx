@@ -4,10 +4,15 @@ import { supabase } from '../lib/supabase'
 
 const CFG_PIN = '7484'
 
-// 현재 스코어와 예측의 근접도 계산 (낮을수록 가까움)
 function calcDistance(p, score) {
   if (score.d === null || score.k === null) return Infinity
   return Math.abs(p.score_doosan - score.d) + Math.abs(p.score_kia - score.k)
+}
+
+// 아직 가능성 있는 예측인지 (현재 스코어를 이미 넘기지 않았는지)
+function isPossible(p, score) {
+  if (score.d === null || score.k === null) return true
+  return p.score_doosan >= score.d && p.score_kia >= score.k
 }
 
 export default function PredictionsPage() {
@@ -51,9 +56,14 @@ export default function PredictionsPage() {
   const dp = total > 0 ? Math.round(dc / total * 100) : 50
   const kp = 100 - dp
 
-  // 현재 스코어 기준으로 정렬 (가장 가까운 예측이 맨 위)
-  const sortedPreds = [...preds].sort((a, b) => calcDistance(a, score) - calcDistance(b, score))
-  const topPred = sortedPreds.length > 0 ? sortedPreds[0] : null
+  // 가능한 예측 먼저, 그 안에서 현재 스코어와 가까운 순으로 정렬
+  const sortedPreds = [...preds].sort((a, b) => {
+    const aPossible = isPossible(a, score)
+    const bPossible = isPossible(b, score)
+    if (aPossible !== bPossible) return aPossible ? -1 : 1
+    return calcDistance(a, score) - calcDistance(b, score)
+  })
+  const topPred = sortedPreds.find(p => isPossible(p, score))
   const minDist = topPred ? calcDistance(topPred, score) : Infinity
 
   function openGearMenu() { setGearMenu(true) }
@@ -91,9 +101,13 @@ export default function PredictionsPage() {
                 <div style={{ ...s.slcScore, color: 'var(--d)' }}>{score.d !== null ? score.d : '-'}</div>
               </div>
               <div style={s.slcMid}>
-                <div style={s.slcInning}>{score.inning ? `${score.inning}회` : ''}</div>
+                {score.status === '진행 중' && (
+                  <>
+                    <div style={s.slcInning}>{score.inning ? `${score.inning}회` : ''}</div>
+                    <div style={s.slcHalf}>{score.half || ''}</div>
+                  </>
+                )}
                 <div style={s.slcColon}>:</div>
-                <div style={s.slcHalf}>{score.half || ''}</div>
               </div>
               <div style={s.slcTeam}>
                 <img src="/kia.svg" style={s.slcLogo} alt="기아" />
@@ -141,12 +155,13 @@ export default function PredictionsPage() {
               <span style={{ ...s.lh, color: 'var(--k)' }}>기아</span>
             </div>
             <div style={s.predList}>
-              {sortedPreds.map((p, i) => (
+              {sortedPreds.map((p) => (
                 <PredCard
                   key={p.id}
                   p={p}
                   score={score}
-                  isTop={i === 0 && minDist !== Infinity}
+                  isTop={topPred?.id === p.id && minDist !== Infinity}
+                  possible={isPossible(p, score)}
                 />
               ))}
             </div>
@@ -163,28 +178,37 @@ export default function PredictionsPage() {
   )
 }
 
-function PredCard({ p, score, isTop }) {
+function PredCard({ p, score, isTop, possible }) {
   const isD = p.team === '두산'
+  // 예측 기준 승리팀 (테두리 방향 결정)
+  const predDWin = p.score_doosan > p.score_kia
+  const predKWin = p.score_kia > p.score_doosan
+  // 현재 스코어 기준 어느 팀 점수가 낮게 예측됐는지 (흐리기)
   const dWin = p.score_doosan > p.score_kia
   const kWin = p.score_kia > p.score_doosan
-  const color = isD ? 'var(--d)' : 'var(--k)'
+
+  const glowAnim = predDWin ? 'glowCardD 1.6s ease-in-out infinite alternate' : 'glowCardK 1.6s ease-in-out infinite alternate'
 
   const cardStyle = {
     ...s.pc,
-    borderLeft: `3px solid ${color}`,
+    opacity: possible ? 1 : 0.4,
+    ...(predDWin ? { borderLeft: '3px solid var(--d)' } : {}),
+    ...(predKWin ? { borderRight: '3px solid var(--k)' } : {}),
+    ...(!predDWin && !predKWin ? { borderLeft: '3px solid var(--g)' } : {}),
     ...(isTop ? {
-      border: `2px solid ${isD ? '#3A56B0' : '#E8334A'}`,
-      boxShadow: isD
+      border: `2px solid ${predDWin ? '#3A56B0' : '#E8334A'}`,
+      ...(predDWin ? { borderLeft: '3px solid #3A56B0' } : { borderRight: '3px solid #E8334A' }),
+      boxShadow: predDWin
         ? '0 0 0 1px rgba(27,45,110,.15), 0 4px 20px rgba(27,45,110,.25)'
         : '0 0 0 1px rgba(206,14,45,.15), 0 4px 20px rgba(206,14,45,.25)',
-      animation: 'glowCard 1.6s ease-in-out infinite alternate',
+      animation: glowAnim,
     } : {}),
   }
 
   return (
     <div style={cardStyle}>
       {isTop && (
-        <div style={{ ...s.topBadge, background: isD ? 'var(--d)' : 'var(--k)' }}>
+        <div style={{ ...s.topBadge, background: predDWin ? 'var(--d)' : 'var(--k)' }}>
           🎯 예상 적중
         </div>
       )}
@@ -194,7 +218,7 @@ function PredCard({ p, score, isTop }) {
           <div style={s.pcName}>{p.name}</div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 3 }}>
             <img src={isD ? '/doosan.svg' : '/kia.svg'} style={s.pcLogo} alt={p.team} />
-            <span style={{ ...s.pcTlbl, color }}>{p.team}{p.cheer ? ` · "${p.cheer}"` : ''}</span>
+            <span style={{ ...s.pcTlbl, color: isD ? 'var(--d)' : 'var(--k)' }}>{p.team}{p.cheer ? ` · "${p.cheer}"` : ''}</span>
           </div>
         </div>
         <div style={{ ...s.pcScore, color: 'var(--k)', opacity: dWin ? 0.45 : 1 }}>{p.score_kia}</div>
