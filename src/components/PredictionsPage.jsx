@@ -269,7 +269,7 @@ function DeleteModal({ preds, locked, onClose, onDeleted, onToggleLock }) {
     onToggleLock()
   }
   return (
-    <div style={s.modalOv} onClick={e => e.target === e.currentTarget && onClose()}>
+    <div style={s.modalOv} >
       <div style={s.modalSheet}>
         <div style={s.modalHandle} />
         <div style={s.modalHdr}>
@@ -336,7 +336,7 @@ function PredModal({ onClose, onSaved }) {
   }
 
   return (
-    <div style={s.modalOv} onClick={e => e.target === e.currentTarget && onClose()}>
+    <div style={s.modalOv} >
       <div style={s.modalSheet} onClick={e => e.stopPropagation()}>
         <div style={s.modalHandle} />
         <div style={s.modalHdr}>
@@ -410,7 +410,7 @@ function PinModal({ onClose, onSuccess }) {
   }
 
   return (
-    <div style={s.modalOv} onClick={e => e.target === e.currentTarget && onClose()}>
+    <div style={s.modalOv} >
       <div style={{ ...s.modalSheet, borderRadius: 'var(--r)', maxWidth: 340, margin: '0 auto 40px' }}>
         <div style={s.modalHdr}>
           <span style={s.modalTtl}>🔐 관리자 인증</span>
@@ -444,7 +444,7 @@ function ScoreModal({ score, onClose, onSaved }) {
   }
 
   return (
-    <div style={s.modalOv} onClick={e => e.target === e.currentTarget && onClose()}>
+    <div style={s.modalOv} >
       <div style={{ ...s.modalSheet, borderRadius: 'var(--r)', maxWidth: 340, margin: '0 auto 40px' }}>
         <div style={s.modalHdr}>
           <span style={s.modalTtl}>📊 스코어 입력</span>
