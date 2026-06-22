@@ -22,11 +22,11 @@ export default function App() {
         * { -webkit-tap-highlight-color: transparent; }
       `}</style>
 
-      <nav style={s.nav}>
+      <nav aria-label="주요 메뉴" style={s.nav}>
         <div style={s.navLogo}>⚾ <span style={{ color: 'var(--d)' }}>분당우리</span> 고등부</div>
         <div style={s.navTabs}>
           {TABS.map((t, i) => (
-            <button key={i} style={{ ...s.navTab, ...(tab === i ? s.navTabActive : {}) }} onClick={() => setTab(i)}>{t}</button>
+            <button key={t} type="button" aria-current={tab === i ? 'page' : undefined} style={{ ...s.navTab, ...(tab === i ? s.navTabActive : {}) }} onClick={() => setTab(i)}>{t}</button>
           ))}
         </div>
       </nav>

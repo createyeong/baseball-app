@@ -12,7 +12,13 @@ export default function FoodPage() {
 
         <div style={s.foodList}>
           {FOOD_ITEMS.map((item, i) => (
-            <div key={i} style={s.foodItem} onClick={() => setOpen(open === i ? null : i)}>
+            <button
+              key={item.name}
+              type="button"
+              aria-expanded={open === i}
+              style={s.foodItem}
+              onClick={() => setOpen(open === i ? null : i)}
+            >
               <div style={s.foodHeader}>
                 <span style={s.foodEmoji}>{item.emoji}</span>
                 <div style={s.foodMain}>
@@ -28,7 +34,7 @@ export default function FoodPage() {
                   <div style={s.foodTip}>{item.tip}</div>
                 </div>
               )}
-            </div>
+            </button>
           ))}
         </div>
 
@@ -52,7 +58,7 @@ const s = {
   inner: { maxWidth: 640, margin: '0 auto' },
   secHdr: { fontSize: 22, fontWeight: 800, letterSpacing: '-.4px', marginBottom: 14 },
   foodList: { display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 },
-  foodItem: { background: 'var(--card)', borderRadius: 'var(--r)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden', cursor: 'pointer' },
+  foodItem: { background: 'var(--card)', border: 'none', borderRadius: 'var(--r)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden', cursor: 'pointer', width: '100%', padding: 0, textAlign: 'left', fontFamily: 'var(--body)', color: 'inherit' },
   foodHeader: { display: 'flex', alignItems: 'center', gap: 12, padding: 14 },
   foodEmoji: { fontSize: 28, flexShrink: 0 },
   foodMain: { flex: 1 },

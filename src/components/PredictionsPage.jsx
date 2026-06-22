@@ -1,8 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
-
-const CFG_PIN = '7484'
 
 function calcDistance(p, score) {
   if (score.d === null || score.k === null) return Infinity
@@ -23,9 +21,23 @@ export default function PredictionsPage() {
   const [pinTarget, setPinTarget] = useState(null) // 'score' | 'delete'
   const [scoreModal, setScoreModal] = useState(false)
   const [deleteModal, setDeleteModal] = useState(false)
+  const [adminPassword, setAdminPassword] = useState('')
+
+  const fetchPreds = useCallback(async () => {
+    const { data, error } = await supabase.from('predictions').select('*').order('created_at', { ascending: true })
+    if (!error && data) setPreds(data)
+  }, [])
+
+  const fetchScore = useCallback(async () => {
+    const { data, error } = await supabase.from('live_score').select('*').eq('id', 1).single()
+    if (!error && data) setScore(data)
+  }, [])
 
   useEffect(() => {
-    fetchAll()
+    const initialLoad = window.setTimeout(() => {
+      fetchPreds()
+      fetchScore()
+    }, 0)
     const predSub = supabase
       .channel('predictions')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'predictions' }, fetchPreds)
@@ -35,20 +47,11 @@ export default function PredictionsPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'live_score' }, fetchScore)
       .subscribe()
     return () => {
+      window.clearTimeout(initialLoad)
       supabase.removeChannel(predSub)
       supabase.removeChannel(scoreSub)
     }
-  }, [])
-
-  async function fetchAll() { await Promise.all([fetchPreds(), fetchScore()]) }
-  async function fetchPreds() {
-    const { data } = await supabase.from('predictions').select('*').order('created_at', { ascending: true })
-    if (data) setPreds(data)
-  }
-  async function fetchScore() {
-    const { data } = await supabase.from('live_score').select('*').eq('id', 1).single()
-    if (data) setScore(data)
-  }
+  }, [fetchPreds, fetchScore])
 
   const total = preds.length
   const dc = preds.filter(p => p.team === '두산').length
@@ -63,15 +66,13 @@ export default function PredictionsPage() {
     if (aPossible !== bPossible) return aPossible ? -1 : 1
     return calcDistance(a, score) - calcDistance(b, score)
   })
-  const topPred = sortedPreds.find(p => isPossible(p, score))
-  const minDist = topPred ? calcDistance(topPred, score) : Infinity
-
   function openGearMenu() { setGearMenu(true) }
   function handleGearSelect(target) {
     setGearMenu(false)
     setPinTarget(target)
   }
-  function handlePinSuccess() {
+  function handlePinSuccess(password) {
+    setAdminPassword(password)
     if (pinTarget === 'score') setScoreModal(true)
     if (pinTarget === 'delete') setDeleteModal(true)
     setPinTarget(null)
@@ -91,7 +92,7 @@ export default function PredictionsPage() {
                 <span style={{ ...s.slcStatus, color: score.status === '진행 중' ? 'var(--grn)' : 'var(--g)', background: score.status === '진행 중' ? 'rgba(52,199,89,.1)' : 'rgba(0,0,0,.06)' }}>
                   {score.status}
                 </span>
-                <button style={s.gearBtn} onClick={openGearMenu} title="관리자">⚙️</button>
+                <button type="button" aria-label="관리자 메뉴 열기" style={s.gearBtn} onClick={openGearMenu} title="관리자">⚙️</button>
               </div>
             </div>
             <div style={s.slcMain}>
@@ -159,7 +160,6 @@ export default function PredictionsPage() {
                 <PredCard
                   key={p.id}
                   p={p}
-                  score={score}
                   isTop={calcDistance(p, score) === 0}
                   possible={isPossible(p, score)}
                 />
@@ -172,13 +172,13 @@ export default function PredictionsPage() {
       {modalOpen && createPortal(<PredModal onClose={() => setModalOpen(false)} onSaved={() => { setModalOpen(false); fetchPreds() }} />, document.body)}
       {gearMenu && createPortal(<GearMenu onClose={() => setGearMenu(false)} onSelect={handleGearSelect} />, document.body)}
       {pinTarget && createPortal(<PinModal onClose={() => setPinTarget(null)} onSuccess={handlePinSuccess} />, document.body)}
-      {scoreModal && createPortal(<ScoreModal score={score} onClose={() => setScoreModal(false)} onSaved={() => { setScoreModal(false); fetchScore() }} />, document.body)}
-      {deleteModal && createPortal(<DeleteModal preds={preds} locked={score.predictions_locked} onClose={() => setDeleteModal(false)} onDeleted={fetchPreds} onToggleLock={fetchScore} />, document.body)}
+      {scoreModal && createPortal(<ScoreModal score={score} password={adminPassword} onClose={() => setScoreModal(false)} onSaved={() => { setScoreModal(false); fetchScore() }} />, document.body)}
+      {deleteModal && createPortal(<DeleteModal preds={preds} password={adminPassword} locked={score.predictions_locked} onClose={() => setDeleteModal(false)} onDeleted={fetchPreds} onToggleLock={fetchScore} />, document.body)}
     </div>
   )
 }
 
-function PredCard({ p, score, isTop, possible }) {
+function PredCard({ p, isTop, possible }) {
   const isD = p.team === '두산'
   // 예측 기준 승리팀 (테두리 방향 결정)
   const predDWin = p.score_doosan > p.score_kia
@@ -233,7 +233,7 @@ function GearMenu({ onClose, onSelect }) {
       <div style={{ ...s.modalSheet, borderRadius: 'var(--r)', maxWidth: 340, margin: '0 auto 40px' }}>
         <div style={s.modalHdr}>
           <span style={s.modalTtl}>⚙️ 관리자 메뉴</span>
-          <button style={s.modalX} onClick={onClose}>✕</button>
+          <button type="button" aria-label="관리자 메뉴 닫기" style={s.modalX} onClick={onClose}>✕</button>
         </div>
         <div style={{ padding: '8px 0 12px' }}>
           <button style={s.menuItem} onClick={() => onSelect('score')}>
@@ -259,22 +259,47 @@ function GearMenu({ onClose, onSelect }) {
   )
 }
 
-function DeleteModal({ preds, locked, onClose, onDeleted, onToggleLock }) {
+function DeleteModal({ preds, password, locked, onClose, onDeleted, onToggleLock }) {
+  const [error, setError] = useState('')
+  const [busyId, setBusyId] = useState(null)
+
   async function del(id) {
-    await supabase.from('predictions').delete().eq('id', id)
-    onDeleted()
+    if (!window.confirm('이 예측을 삭제할까요? 삭제 후에는 되돌릴 수 없어요.')) return
+    setError('')
+    setBusyId(id)
+    const { data, error: rpcError } = await supabase.rpc('admin_delete_prediction', {
+      p_password: password,
+      p_id: id,
+    })
+    setBusyId(null)
+    if (rpcError || data !== true) {
+      setError(rpcError?.message || '삭제에 실패했어요.')
+      return
+    }
+    await onDeleted()
   }
+
   async function toggleLock() {
-    await supabase.from('live_score').update({ predictions_locked: !locked }).eq('id', 1)
-    onToggleLock()
+    setError('')
+    setBusyId('lock')
+    const { data, error: rpcError } = await supabase.rpc('admin_set_predictions_locked', {
+      p_password: password,
+      p_locked: !locked,
+    })
+    setBusyId(null)
+    if (rpcError || data !== true) {
+      setError(rpcError?.message || '예측 마감 변경에 실패했어요.')
+      return
+    }
+    await onToggleLock()
   }
   return (
-    <div style={s.modalOv} >
+    <div style={s.modalOv} onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={s.modalSheet}>
         <div style={s.modalHandle} />
         <div style={s.modalHdr}>
           <span style={s.modalTtl}>⚙️ 예측 관리</span>
-          <button style={s.modalX} onClick={onClose}>✕</button>
+          <button type="button" aria-label="예측 관리 닫기" style={s.modalX} onClick={onClose}>✕</button>
         </div>
         <div style={s.modalBody}>
 
@@ -284,11 +309,12 @@ function DeleteModal({ preds, locked, onClose, onDeleted, onToggleLock }) {
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--w)' }}>예측 마감</div>
               <div style={{ fontSize: 12, color: 'var(--g)', marginTop: 2 }}>켜면 더 이상 예측을 남길 수 없어요</div>
             </div>
-            <button style={{ ...s.toggle, background: locked ? 'var(--grn)' : 'var(--card3)' }} onClick={toggleLock}>
+            <button type="button" aria-label={locked ? '예측 접수 다시 열기' : '예측 접수 마감하기'} disabled={busyId === 'lock'} style={{ ...s.toggle, background: locked ? 'var(--grn)' : 'var(--card3)', opacity: busyId === 'lock' ? .5 : 1 }} onClick={toggleLock}>
               <div style={{ ...s.toggleKnob, transform: locked ? 'translateX(20px)' : 'translateX(2px)' }} />
             </button>
           </div>
 
+          {error && <div style={{ ...s.ferr, marginTop: 12 }}>{error}</div>}
           <div style={{ height: 1, background: 'var(--sep)', margin: '14px 0' }} />
 
           {/* 예측 삭제 목록 */}
@@ -304,7 +330,9 @@ function DeleteModal({ preds, locked, onClose, onDeleted, onToggleLock }) {
                     <div style={{ fontSize: 14, fontWeight: 700 }}>{p.name}</div>
                     <div style={{ fontSize: 12, color: 'var(--g)' }}>{p.score_doosan} : {p.score_kia}{p.cheer ? ` · "${p.cheer}"` : ''}</div>
                   </div>
-                  <button style={s.delBtn} onClick={() => del(p.id)}>삭제</button>
+                  <button type="button" disabled={busyId === p.id} style={{ ...s.delBtn, opacity: busyId === p.id ? .5 : 1 }} onClick={() => del(p.id)}>
+                    {busyId === p.id ? '삭제 중…' : '삭제'}
+                  </button>
                 </div>
               )
             })}
@@ -330,18 +358,21 @@ function PredModal({ onClose, onSaved }) {
     if (miss.length) { setErr('누락된 항목 → ' + miss.join(', ')); return }
     const { error } = await supabase
       .from('predictions')
-      .upsert({ name: name.trim(), team, score_doosan: sd, score_kia: sk, cheer: cheer.trim() }, { onConflict: 'name' })
-    if (error) { setErr('저장 실패: ' + error.message); return }
+      .insert({ name: name.trim(), team, score_doosan: sd, score_kia: sk, cheer: cheer.trim() || null })
+    if (error) {
+      setErr(error.code === '23505' ? '이미 같은 이름으로 등록된 예측이 있어요.' : '저장에 실패했어요. 잠시 후 다시 시도해 주세요.')
+      return
+    }
     onSaved()
   }
 
   return (
-    <div style={s.modalOv} >
+    <div style={s.modalOv} onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={s.modalSheet} onClick={e => e.stopPropagation()}>
         <div style={s.modalHandle} />
         <div style={s.modalHdr}>
           <span style={s.modalTtl}>⚾ 예측 남기기</span>
-          <button style={s.modalX} onClick={onClose}>✕</button>
+          <button type="button" aria-label="예측 입력 닫기" style={s.modalX} onClick={onClose}>✕</button>
         </div>
         <div style={s.modalBody}>
           <FormGroup label="이름">
@@ -349,10 +380,10 @@ function PredModal({ onClose, onSaved }) {
           </FormGroup>
           <FormGroup label="응원팀">
             <div style={s.tgrid}>
-              <button style={{ ...s.tbtn, ...(team === '두산' ? s.tbtnD : {}) }} onClick={() => setTeam('두산')}>
+              <button type="button" style={{ ...s.tbtn, ...(team === '두산' ? s.tbtnD : {}) }} onClick={() => setTeam('두산')}>
                 <img src="/doosan.svg" style={s.tbtnLogo} alt="두산" /> 두산
               </button>
-              <button style={{ ...s.tbtn, ...(team === '기아' ? s.tbtnK : {}) }} onClick={() => setTeam('기아')}>
+              <button type="button" style={{ ...s.tbtn, ...(team === '기아' ? s.tbtnK : {}) }} onClick={() => setTeam('기아')}>
                 <img src="/kia.svg" style={s.tbtnLogo} alt="기아" /> 기아
               </button>
             </div>
@@ -368,7 +399,7 @@ function PredModal({ onClose, onSaved }) {
             <input style={s.finp} value={cheer} onChange={e => setCheer(e.target.value)} placeholder="ex) 오늘은 꼭 이겨라!" maxLength={30} />
           </FormGroup>
           {err && <div style={s.ferr}>{err}</div>}
-          <button style={s.modalSubmit} onClick={submit}>예측 제출하기</button>
+          <button type="button" style={s.modalSubmit} onClick={submit}>예측 제출하기</button>
         </div>
       </div>
     </div>
@@ -380,9 +411,9 @@ function ScoreAdj({ label, color, val, onChange }) {
     <div style={{ textAlign: 'center', flex: 1 }}>
       <div style={{ fontSize: 11, color: 'var(--g)', marginBottom: 4 }}>{label}</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
-        <button style={s.adjBtn} onClick={() => onChange(Math.max(0, val - 1))}>−</button>
+        <button type="button" aria-label={`${label} 점수 내리기`} style={s.adjBtn} onClick={() => onChange(Math.max(0, val - 1))}>−</button>
         <span style={{ fontSize: 28, fontWeight: 800, color, minWidth: 36, textAlign: 'center' }}>{val}</span>
-        <button style={s.adjBtn} onClick={() => onChange(Math.min(30, val + 1))}>+</button>
+        <button type="button" aria-label={`${label} 점수 올리기`} style={s.adjBtn} onClick={() => onChange(Math.min(30, val + 1))}>+</button>
       </div>
     </div>
   )
@@ -399,56 +430,82 @@ function FormGroup({ label, children }) {
 
 function PinModal({ onClose, onSuccess }) {
   const [pin, setPin] = useState('')
-  const [err, setErr] = useState(false)
+  const [err, setErr] = useState('')
+  const [checking, setChecking] = useState(false)
 
-  function check(val) {
-    setPin(val)
-    if (val.length === 4) {
-      if (val === CFG_PIN) { setTimeout(onSuccess, 100) }
-      else { setErr(true); setPin(''); setTimeout(() => setErr(false), 1500) }
+  async function check() {
+    if (!pin) return
+    setChecking(true)
+    setErr('')
+    const { data, error } = await supabase.rpc('admin_check_password', { p_password: pin })
+    setChecking(false)
+    if (error || data !== true) {
+      setErr('비밀번호가 틀렸거나 보안 설정이 아직 적용되지 않았어요.')
+      return
     }
+    onSuccess(pin)
   }
 
   return (
-    <div style={s.modalOv} >
+    <div style={s.modalOv} onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={{ ...s.modalSheet, borderRadius: 'var(--r)', maxWidth: 340, margin: '0 auto 40px' }}>
         <div style={s.modalHdr}>
           <span style={s.modalTtl}>🔐 관리자 인증</span>
-          <button style={s.modalX} onClick={onClose}>✕</button>
+          <button type="button" aria-label="관리자 인증 닫기" style={s.modalX} onClick={onClose}>✕</button>
         </div>
         <div style={s.modalBody}>
           <input
-            style={{ ...s.finp, textAlign: 'center', fontSize: 22, letterSpacing: 8, animation: err ? 'shake .3s ease' : 'none' }}
-            type="password" maxLength={4} value={pin}
-            onChange={e => check(e.target.value)}
-            placeholder="• • • •"
+            style={{ ...s.finp, textAlign: 'center', fontSize: 18, animation: err ? 'shake .3s ease' : 'none' }}
+            type="password" maxLength={64} value={pin}
+            onChange={e => setPin(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && check()}
+            placeholder="관리자 비밀번호"
             autoFocus
           />
-          {err && <div style={{ ...s.ferr, marginTop: 8 }}>비밀번호가 틀렸어요</div>}
+          {err && <div style={{ ...s.ferr, marginTop: 8 }}>{err}</div>}
+          <button type="button" disabled={checking} style={{ ...s.modalSubmit, opacity: checking ? .5 : 1 }} onClick={check}>
+            {checking ? '확인 중…' : '확인'}
+          </button>
         </div>
       </div>
     </div>
   )
 }
 
-function ScoreModal({ score, onClose, onSaved }) {
+function ScoreModal({ score, password, onClose, onSaved }) {
   const [d, setD] = useState(score.d ?? 0)
   const [k, setK] = useState(score.k ?? 0)
   const [inning, setInning] = useState(score.inning ?? 1)
   const [half, setHalf] = useState(score.half ?? '초')
   const [status, setStatus] = useState(score.status ?? '경기 전')
+  const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
 
   async function save() {
-    await supabase.from('live_score').upsert({ id: 1, d, k, inning, half, status })
+    setSaving(true)
+    setError('')
+    const { data, error: rpcError } = await supabase.rpc('admin_update_score', {
+      p_password: password,
+      p_d: d,
+      p_k: k,
+      p_inning: inning,
+      p_half: half,
+      p_status: status,
+    })
+    setSaving(false)
+    if (rpcError || data !== true) {
+      setError(rpcError?.message || '점수 저장에 실패했어요.')
+      return
+    }
     onSaved()
   }
 
   return (
-    <div style={s.modalOv} >
+    <div style={s.modalOv} onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={{ ...s.modalSheet, borderRadius: 'var(--r)', maxWidth: 340, margin: '0 auto 40px' }}>
         <div style={s.modalHdr}>
           <span style={s.modalTtl}>📊 스코어 입력</span>
-          <button style={s.modalX} onClick={onClose}>✕</button>
+          <button type="button" aria-label="스코어 입력 닫기" style={s.modalX} onClick={onClose}>✕</button>
         </div>
         <div style={s.modalBody}>
           <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
@@ -472,7 +529,10 @@ function ScoreModal({ score, onClose, onSaved }) {
               <option value="경기 종료">경기 종료</option>
             </select>
           </div>
-          <button style={s.modalSubmit} onClick={save}>저장</button>
+          {error && <div style={s.ferr}>{error}</div>}
+          <button type="button" disabled={saving} style={{ ...s.modalSubmit, opacity: saving ? .5 : 1 }} onClick={save}>
+            {saving ? '저장 중…' : '저장'}
+          </button>
         </div>
       </div>
     </div>
@@ -485,7 +545,7 @@ function ScoreField({ label, value, onChange, color }) {
       <label style={s.flbl}>{label}</label>
       <input style={{ ...s.finp, color: color || 'var(--w)', fontWeight: 700 }}
         type="number" min={0} max={30} value={value}
-        onChange={e => onChange(Number(e.target.value))} />
+        onChange={e => onChange(Math.max(0, Math.min(30, Number(e.target.value) || 0)))} />
     </div>
   )
 }

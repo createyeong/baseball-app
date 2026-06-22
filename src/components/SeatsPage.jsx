@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { Fragment, useState, useRef } from 'react'
 import { ROWS, ROW_LABELS, SEAT_NAMES } from '../data'
 
 export default function SeatsPage() {
@@ -37,8 +37,8 @@ export default function SeatsPage() {
           <div style={s.sgLbl}>중앙 네이비석 · 172–233 구역</div>
           <div style={s.sg}>
             {ROWS.map((row, ri) => (
-              <>
-                <div key={'lbl'+ri} style={s.sgRl}>{ROW_LABELS[ri]}</div>
+              <Fragment key={ROW_LABELS[ri]}>
+                <div style={s.sgRl}>{ROW_LABELS[ri]}</div>
                 {row.map(n => {
                   const hl = highlighted.has(n)
                   return (
@@ -50,7 +50,7 @@ export default function SeatsPage() {
                     </div>
                   )
                 })}
-              </>
+              </Fragment>
             ))}
           </div>
         </div>

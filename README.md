@@ -1,16 +1,34 @@
-# React + Vite
+# 야구장 관람 안내
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+분당우리교회 고등부 야구장 관람을 위한 React + Supabase 웹앱입니다.
 
-Currently, two official plugins are available:
+## 로컬 실행
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install
+npm run dev
+```
 
-## React Compiler
+## 점검
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+npm run lint
+npm run build
+```
 
-## Expanding the ESLint configuration
+## Supabase 설정
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1. Supabase 대시보드에서 SQL Editor를 엽니다.
+2. `supabase_setup.sql`의 `CHANGE_THIS_TO_A_LONG_PASSWORD`를 8자 이상의 강한 관리자 비밀번호로 바꿉니다.
+3. 수정한 SQL 전체를 실행합니다.
+4. 실제 비밀번호가 들어간 SQL은 저장하거나 Git에 커밋하지 않습니다.
+
+공개 사용자는 예측 조회·등록만 할 수 있습니다. 점수 변경, 예측 마감, 예측 삭제는 서버에서 관리자 비밀번호를 검증한 뒤 실행됩니다.
+
+## 배포
+
+`main` 브랜치에 푸시하면 연결된 Vercel 프로젝트가 자동 배포됩니다.
+
+## 개인정보 주의
+
+좌석 배정 이름은 `src/data.js`에 포함되어 공개 빌드에 노출됩니다. 링크를 제한된 구성원에게만 공유하고, 공개 운영이 필요하면 이름을 별칭이나 이니셜로 교체하세요.
