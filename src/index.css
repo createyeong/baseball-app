@@ -1,0 +1,36 @@
+:root {
+  --bg: #F2F2F7;
+  --card: #FFF;
+  --card2: #F2F2F7;
+  --card3: #E5E5EA;
+  --sep: rgba(0,0,0,.1);
+  --sep2: rgba(0,0,0,.06);
+  --d: #1B2D6E;
+  --d2: #3A56B0;
+  --d3: #7B9CFF;
+  --d-light: rgba(27,45,110,.09);
+  --k: #CE0E2D;
+  --k2: #E8334A;
+  --k3: #FF8094;
+  --k-light: rgba(206,14,45,.08);
+  --y: #FF9500;
+  --y2: #FF6D00;
+  --g: #8E8E93;
+  --g2: #6D6D72;
+  --g3: #3C3C43;
+  --w: #000;
+  --w2: rgba(0,0,0,.75);
+  --w3: rgba(0,0,0,.45);
+  --grn: #34C759;
+  --grn2: #248A3D;
+  --shadow: 0 2px 20px rgba(0,0,0,.08);
+  --shadow-sm: 0 1px 8px rgba(0,0,0,.06);
+  --body: 'Noto Sans KR', system-ui, sans-serif;
+  --r: 16px;
+  --rs: 12px;
+  --rxs: 8px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--w); font-family: var(--body); }
+#root { height: 100%; display: flex; flex-direction: column; }
