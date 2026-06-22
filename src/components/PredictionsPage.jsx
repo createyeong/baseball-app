@@ -12,7 +12,7 @@ function calcDistance(p, score) {
 
 export default function PredictionsPage() {
   const [preds, setPreds] = useState([])
-  const [score, setScore] = useState({ d: null, k: null, inning: null, half: '초', status: '경기 전' })
+  const [score, setScore] = useState({ d: null, k: null, inning: null, half: '초', status: '경기 전', predictions_locked: false })
   const [modalOpen, setModalOpen] = useState(false)
   const [gearMenu, setGearMenu] = useState(false)
   const [pinTarget, setPinTarget] = useState(null) // 'score' | 'delete'
@@ -123,7 +123,11 @@ export default function PredictionsPage() {
             </div>
           </div>
           <div style={s.bcFoot}>
-            <button style={s.predBtn} onClick={() => setModalOpen(true)}>⚾ 예측 남기기</button>
+            {score.predictions_locked ? (
+              <div style={s.lockedMsg}>🔒 예측이 마감됐어요</div>
+            ) : (
+              <button style={s.predBtn} onClick={() => setModalOpen(true)}>⚾ 예측 남기기</button>
+            )}
             <div style={s.predSub}>{total === 0 ? '아직 아무도 예측하지 않았어요' : `총 ${total}명 참여 중!`}</div>
           </div>
         </div>
@@ -154,7 +158,7 @@ export default function PredictionsPage() {
       {gearMenu && createPortal(<GearMenu onClose={() => setGearMenu(false)} onSelect={handleGearSelect} />, document.body)}
       {pinTarget && createPortal(<PinModal onClose={() => setPinTarget(null)} onSuccess={handlePinSuccess} />, document.body)}
       {scoreModal && createPortal(<ScoreModal score={score} onClose={() => setScoreModal(false)} onSaved={() => { setScoreModal(false); fetchScore() }} />, document.body)}
-      {deleteModal && createPortal(<DeleteModal preds={preds} onClose={() => setDeleteModal(false)} onDeleted={fetchPreds} />, document.body)}
+      {deleteModal && createPortal(<DeleteModal preds={preds} locked={score.predictions_locked} onClose={() => setDeleteModal(false)} onDeleted={fetchPreds} onToggleLock={fetchScore} />, document.body)}
     </div>
   )
 }
@@ -231,21 +235,41 @@ function GearMenu({ onClose, onSelect }) {
   )
 }
 
-function DeleteModal({ preds, onClose, onDeleted }) {
+function DeleteModal({ preds, locked, onClose, onDeleted, onToggleLock }) {
   async function del(id) {
     await supabase.from('predictions').delete().eq('id', id)
     onDeleted()
+  }
+  async function toggleLock() {
+    await supabase.from('live_score').update({ predictions_locked: !locked }).eq('id', 1)
+    onToggleLock()
   }
   return (
     <div style={s.modalOv} onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={s.modalSheet}>
         <div style={s.modalHandle} />
         <div style={s.modalHdr}>
-          <span style={s.modalTtl}>🗑️ 예측 삭제</span>
+          <span style={s.modalTtl}>⚙️ 예측 관리</span>
           <button style={s.modalX} onClick={onClose}>✕</button>
         </div>
         <div style={s.modalBody}>
-          {preds.length === 0 && <div style={{ color: 'var(--g)', fontSize: 14, textAlign: 'center', padding: '20px 0' }}>삭제할 예측이 없어요</div>}
+
+          {/* 예측 마감 토글 */}
+          <div style={s.lockRow}>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--w)' }}>예측 마감</div>
+              <div style={{ fontSize: 12, color: 'var(--g)', marginTop: 2 }}>켜면 더 이상 예측을 남길 수 없어요</div>
+            </div>
+            <button style={{ ...s.toggle, background: locked ? 'var(--grn)' : 'var(--card3)' }} onClick={toggleLock}>
+              <div style={{ ...s.toggleKnob, transform: locked ? 'translateX(20px)' : 'translateX(2px)' }} />
+            </button>
+          </div>
+
+          <div style={{ height: 1, background: 'var(--sep)', margin: '14px 0' }} />
+
+          {/* 예측 삭제 목록 */}
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--g)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>예측 삭제</div>
+          {preds.length === 0 && <div style={{ color: 'var(--g)', fontSize: 14, textAlign: 'center', padding: '16px 0' }}>삭제할 예측이 없어요</div>}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {preds.map(p => {
               const isD = p.team === '두산'
@@ -492,6 +516,10 @@ const s = {
   menuIcon: { fontSize: 22, flexShrink: 0 },
   menuLabel: { fontSize: 15, fontWeight: 600, color: 'var(--w)', marginBottom: 2 },
   menuSub: { fontSize: 12, color: 'var(--g)' },
+  lockedMsg: { fontSize: 14, fontWeight: 700, color: 'var(--g)', background: 'var(--card2)', borderRadius: 'var(--rs)', padding: '11px 24px', display: 'inline-block' },
+  lockRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  toggle: { width: 44, height: 26, borderRadius: 13, border: 'none', cursor: 'pointer', position: 'relative', transition: 'background .25s', flexShrink: 0, padding: 0 },
+  toggleKnob: { position: 'absolute', top: 3, width: 20, height: 20, background: '#fff', borderRadius: '50%', boxShadow: '0 1px 4px rgba(0,0,0,.25)', transition: 'transform .25s' },
   delRow: { display: 'flex', alignItems: 'center', gap: 10, background: 'var(--card2)', borderRadius: 'var(--rxs)', padding: '10px 12px' },
   delBtn: { background: 'var(--k-light)', color: 'var(--k)', border: '1px solid var(--k)', borderRadius: 6, padding: '5px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--body)', flexShrink: 0 },
   modalOv: { display: 'flex', position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,.4)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', alignItems: 'flex-end', justifyContent: 'center' },

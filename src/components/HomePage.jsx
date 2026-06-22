@@ -14,7 +14,6 @@ export default function HomePage({ onNav }) {
               </div>
               <div style={s.heroVsWrap}>
                 <div style={s.heroVs}>VS</div>
-                <div style={s.heroSect}>317구역</div>
               </div>
               <div style={s.heroTeam}>
                 <img src="/kia.svg" style={s.heroLogo} alt="기아" />
@@ -82,7 +81,6 @@ const s = {
   heroTeamName: { fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.85)' },
   heroVsWrap: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 },
   heroVs: { fontSize: 18, fontWeight: 900, color: 'rgba(255,255,255,.5)', letterSpacing: 1 },
-  heroSect: { fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.35)', letterSpacing: '.5px' },
 
   heroBody: { background: '#fff', padding: '4px 16px 14px' },
   infoRow: { display: 'flex', alignItems: 'center', gap: 10, padding: '11px 0', borderTop: '1px solid var(--sep2)' },
