@@ -2,19 +2,27 @@ export default function HomePage({ onNav }) {
   return (
     <div style={s.page}>
       <div style={s.inner}>
-        {/* 매치업 카드 */}
+
+        {/* 히어로 — 다크 네이비 */}
         <div style={s.heroCard}>
-          <div style={s.matchup}>
-            <div style={{ ...s.mt, background: 'var(--d-light)' }}>
-              <img src="/doosan.svg" style={s.teamLogo} alt="두산" />
-              <div style={s.teamName}>두산 베어스</div>
-            </div>
-            <div style={s.vs}>VS</div>
-            <div style={{ ...s.mt, background: 'var(--k-light)' }}>
-              <img src="/kia.svg" style={s.teamLogo} alt="기아" />
-              <div style={s.teamName}>기아 타이거즈</div>
+          <div style={s.heroBg}>
+            <div style={s.heroDate}>2026 · 06 · 26 FRI · 잠실야구장</div>
+            <div style={s.heroMatchup}>
+              <div style={s.heroTeam}>
+                <img src="/doosan.svg" style={s.heroLogo} alt="두산" />
+                <div style={s.heroTeamName}>두산 베어스</div>
+              </div>
+              <div style={s.heroVsWrap}>
+                <div style={s.heroVs}>VS</div>
+                <div style={s.heroSect}>317구역</div>
+              </div>
+              <div style={s.heroTeam}>
+                <img src="/kia.svg" style={s.heroLogo} alt="기아" />
+                <div style={s.heroTeamName}>기아 타이거즈</div>
+              </div>
             </div>
           </div>
+          {/* 인포 */}
           <div style={s.heroBody}>
             <InfoRow icon="🕕" label="집합 시간" value="오후 6:15 (경기 6:30)" />
             <InfoRow icon="📍" label="장소" value="잠실야구장" />
@@ -60,17 +68,28 @@ function QuickBtn({ emoji, title, sub, onClick }) {
 const s = {
   page: { flex: '0 0 100%', width: '100%', height: '100%', overflowY: 'auto', padding: '18px 14px 72px', scrollbarWidth: 'none' },
   inner: { maxWidth: 640, margin: '0 auto' },
-  heroCard: { background: 'var(--card)', borderRadius: 'var(--r)', boxShadow: 'var(--shadow)', marginBottom: 12, overflow: 'hidden' },
-  matchup: { display: 'flex', alignItems: 'stretch', borderBottom: '1px solid var(--sep)' },
-  mt: { flex: 1, padding: '16px 10px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 },
-  vs: { padding: '0 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, color: 'var(--g)', borderLeft: '1px solid var(--sep)', borderRight: '1px solid var(--sep)' },
-  teamLogo: { width: 64, height: 64, objectFit: 'contain', display: 'block' },
-  teamName: { fontSize: 12, fontWeight: 700, color: 'var(--g3)' },
-  heroBody: { padding: '4px 14px 14px' },
+
+  heroCard: { borderRadius: 'var(--r)', boxShadow: 'var(--shadow)', marginBottom: 12, overflow: 'hidden' },
+  heroBg: {
+    background: 'linear-gradient(160deg, #0d1e5c 0%, #1B2D6E 50%, #15244a 100%)',
+    padding: '24px 20px 28px',
+    textAlign: 'center',
+  },
+  heroDate: { fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.45)', letterSpacing: '.8px', marginBottom: 20 },
+  heroMatchup: { display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 8 },
+  heroTeam: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 },
+  heroLogo: { width: 90, height: 90, objectFit: 'contain', filter: 'drop-shadow(0 4px 12px rgba(0,0,0,.4))' },
+  heroTeamName: { fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.85)' },
+  heroVsWrap: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 },
+  heroVs: { fontSize: 18, fontWeight: 900, color: 'rgba(255,255,255,.5)', letterSpacing: 1 },
+  heroSect: { fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.35)', letterSpacing: '.5px' },
+
+  heroBody: { background: '#fff', padding: '4px 16px 14px' },
   infoRow: { display: 'flex', alignItems: 'center', gap: 10, padding: '11px 0', borderTop: '1px solid var(--sep2)' },
   infoIcon: { fontSize: 18, width: 32, textAlign: 'center', flexShrink: 0 },
   infoLbl: { fontSize: 10, fontWeight: 600, color: 'var(--g)', marginBottom: 1 },
   infoVal: { fontSize: 14, fontWeight: 600, color: 'var(--w)' },
+
   quickBtn: { background: 'var(--card)', border: 'none', borderRadius: 'var(--r)', boxShadow: 'var(--shadow-sm)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', textAlign: 'left', width: '100%', marginBottom: 10, fontFamily: 'var(--body)' },
   quickTitle: { fontSize: 15, fontWeight: 700, color: 'var(--w)', marginBottom: 2 },
   quickSub: { fontSize: 12, color: 'var(--g)' },

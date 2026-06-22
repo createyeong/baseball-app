@@ -181,7 +181,7 @@ function PredCard({ p, score, isTop }) {
     <div style={cardStyle}>
       {isTop && (
         <div style={{ ...s.topBadge, background: isD ? 'var(--d)' : 'var(--k)' }}>
-          🏆 현재 1위
+          🎯 예상 적중
         </div>
       )}
       <div style={s.pcBody}>
