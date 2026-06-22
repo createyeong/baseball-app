@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 
 const CFG_PIN = '7484'
@@ -126,9 +127,9 @@ export default function PredictionsPage() {
         )}
       </div>
 
-      {modalOpen && <PredModal onClose={() => setModalOpen(false)} onSaved={() => { setModalOpen(false); fetchPreds() }} />}
-      {pinModal && <PinModal onClose={() => setPinModal(false)} onSuccess={() => { setPinModal(false); setScoreModal(true) }} />}
-      {scoreModal && <ScoreModal score={score} onClose={() => setScoreModal(false)} onSaved={() => { setScoreModal(false); fetchScore() }} />}
+      {modalOpen && createPortal(<PredModal onClose={() => setModalOpen(false)} onSaved={() => { setModalOpen(false); fetchPreds() }} />, document.body)}
+      {pinModal && createPortal(<PinModal onClose={() => setPinModal(false)} onSuccess={() => { setPinModal(false); setScoreModal(true) }} />, document.body)}
+      {scoreModal && createPortal(<ScoreModal score={score} onClose={() => setScoreModal(false)} onSaved={() => { setScoreModal(false); fetchScore() }} />, document.body)}
     </div>
   )
 }
@@ -143,7 +144,10 @@ function PredCard({ p }) {
         <div style={{ ...s.pcScore, color: 'var(--d)', opacity: kWin ? 0.45 : 1 }}>{p.score_doosan}</div>
         <div style={s.pcCenter}>
           <div style={s.pcName}>{p.name}</div>
-          <div style={{ ...s.pcTlbl, color: isD ? 'var(--d)' : 'var(--k)' }}>{isD ? '🔵 두산' : '🔴 기아'}{p.cheer ? ` · "${p.cheer}"` : ''}</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 3 }}>
+            <img src={isD ? '/doosan.svg' : '/kia.svg'} style={s.pcLogo} alt={p.team} />
+            <span style={{ ...s.pcTlbl, color: isD ? 'var(--d)' : 'var(--k)' }}>{p.team}{p.cheer ? ` · "${p.cheer}"` : ''}</span>
+          </div>
         </div>
         <div style={{ ...s.pcScore, color: 'var(--k)', opacity: dWin ? 0.45 : 1 }}>{p.score_kia}</div>
       </div>
@@ -187,8 +191,12 @@ function PredModal({ onClose, onSaved }) {
           </FormGroup>
           <FormGroup label="응원팀">
             <div style={s.tgrid}>
-              <button style={{ ...s.tbtn, ...(team === '두산' ? s.tbtnD : {}) }} onClick={() => setTeam('두산')}>🔵 두산</button>
-              <button style={{ ...s.tbtn, ...(team === '기아' ? s.tbtnK : {}) }} onClick={() => setTeam('기아')}>🔴 기아</button>
+              <button style={{ ...s.tbtn, ...(team === '두산' ? s.tbtnD : {}) }} onClick={() => setTeam('두산')}>
+                <img src="/doosan.svg" style={s.tbtnLogo} alt="두산" /> 두산
+              </button>
+              <button style={{ ...s.tbtn, ...(team === '기아' ? s.tbtnK : {}) }} onClick={() => setTeam('기아')}>
+                <img src="/kia.svg" style={s.tbtnLogo} alt="기아" /> 기아
+              </button>
             </div>
           </FormGroup>
           <FormGroup label="예측 점수">
@@ -367,7 +375,8 @@ const s = {
   pcScore: { fontSize: 24, fontWeight: 800, textAlign: 'center', lineHeight: 1 },
   pcCenter: { textAlign: 'center' },
   pcName: { fontSize: 15, fontWeight: 700, color: 'var(--w)', marginBottom: 2 },
-  pcTlbl: { fontSize: 12, fontWeight: 700, marginTop: 3 },
+  pcLogo: { width: 18, height: 18, objectFit: 'contain' },
+  pcTlbl: { fontSize: 12, fontWeight: 700 },
   modalOv: { display: 'flex', position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,.4)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', alignItems: 'flex-end', justifyContent: 'center' },
   modalSheet: { background: 'rgba(250,250,252,.98)', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 560, maxHeight: '92vh', overflowY: 'auto', paddingBottom: 20, animation: 'up .3s cubic-bezier(.4,0,.2,1)' },
   modalHandle: { width: 36, height: 4, background: 'var(--card3)', borderRadius: 2, margin: '11px auto 0' },
@@ -378,9 +387,10 @@ const s = {
   flbl: { fontSize: 11, fontWeight: 600, color: 'var(--g)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 7, display: 'block' },
   finp: { width: '100%', background: 'var(--card2)', border: '1px solid var(--sep)', borderRadius: 'var(--rxs)', color: 'var(--w)', fontFamily: 'var(--body)', fontSize: 15, padding: '10px 12px', outline: 'none' },
   tgrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 },
-  tbtn: { padding: '10px', border: '2px solid var(--sep)', borderRadius: 'var(--rxs)', background: 'var(--card2)', fontFamily: 'var(--body)', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
+  tbtn: { padding: '10px', border: '2px solid var(--sep)', borderRadius: 'var(--rxs)', background: 'var(--card2)', fontFamily: 'var(--body)', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 },
   tbtnD: { background: 'var(--d-light)', borderColor: 'var(--d)', color: 'var(--d)' },
   tbtnK: { background: 'var(--k-light)', borderColor: 'var(--k)', color: 'var(--k)' },
+  tbtnLogo: { width: 24, height: 24, objectFit: 'contain' },
   adjBtn: { width: 32, height: 32, borderRadius: 8, border: '1px solid var(--sep)', background: 'var(--card2)', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   ferr: { fontSize: 12, color: 'var(--k)', background: 'var(--k-light)', padding: '7px 10px', borderRadius: 'var(--rxs)', marginBottom: 8 },
   modalSubmit: { width: '100%', padding: 14, background: 'var(--d)', color: '#fff', border: 'none', borderRadius: 'var(--rs)', fontFamily: 'var(--body)', fontSize: 15, fontWeight: 700, cursor: 'pointer', marginTop: 4 },
