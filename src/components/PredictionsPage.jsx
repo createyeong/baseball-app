@@ -160,7 +160,7 @@ export default function PredictionsPage() {
                   key={p.id}
                   p={p}
                   score={score}
-                  isTop={topPred?.id === p.id && minDist !== Infinity}
+                  isTop={calcDistance(p, score) === 0}
                   possible={isPossible(p, score)}
                 />
               ))}
