@@ -4,42 +4,42 @@ import { supabase } from '../lib/supabase'
 
 const CFG_PIN = '7484'
 
+// 현재 스코어와 예측의 근접도 계산 (낮을수록 가까움)
+function calcDistance(p, score) {
+  if (score.d === null || score.k === null) return Infinity
+  return Math.abs(p.score_doosan - score.d) + Math.abs(p.score_kia - score.k)
+}
+
 export default function PredictionsPage() {
   const [preds, setPreds] = useState([])
   const [score, setScore] = useState({ d: null, k: null, inning: null, half: '초', status: '경기 전' })
   const [modalOpen, setModalOpen] = useState(false)
-  const [pinModal, setPinModal] = useState(false)
+  const [gearMenu, setGearMenu] = useState(false)
+  const [pinTarget, setPinTarget] = useState(null) // 'score' | 'delete'
   const [scoreModal, setScoreModal] = useState(false)
+  const [deleteModal, setDeleteModal] = useState(false)
 
   useEffect(() => {
     fetchAll()
-
-    // 실시간 구독
     const predSub = supabase
       .channel('predictions')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'predictions' }, fetchPreds)
       .subscribe()
-
     const scoreSub = supabase
       .channel('live_score')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'live_score' }, fetchScore)
       .subscribe()
-
     return () => {
       supabase.removeChannel(predSub)
       supabase.removeChannel(scoreSub)
     }
   }, [])
 
-  async function fetchAll() {
-    await Promise.all([fetchPreds(), fetchScore()])
-  }
-
+  async function fetchAll() { await Promise.all([fetchPreds(), fetchScore()]) }
   async function fetchPreds() {
     const { data } = await supabase.from('predictions').select('*').order('created_at', { ascending: true })
     if (data) setPreds(data)
   }
-
   async function fetchScore() {
     const { data } = await supabase.from('live_score').select('*').eq('id', 1).single()
     if (data) setScore(data)
@@ -50,6 +50,22 @@ export default function PredictionsPage() {
   const kc = total - dc
   const dp = total > 0 ? Math.round(dc / total * 100) : 50
   const kp = 100 - dp
+
+  // 현재 스코어 기준으로 정렬 (가장 가까운 예측이 맨 위)
+  const sortedPreds = [...preds].sort((a, b) => calcDistance(a, score) - calcDistance(b, score))
+  const topPred = sortedPreds.length > 0 ? sortedPreds[0] : null
+  const minDist = topPred ? calcDistance(topPred, score) : Infinity
+
+  function openGearMenu() { setGearMenu(true) }
+  function handleGearSelect(target) {
+    setGearMenu(false)
+    setPinTarget(target)
+  }
+  function handlePinSuccess() {
+    if (pinTarget === 'score') setScoreModal(true)
+    if (pinTarget === 'delete') setDeleteModal(true)
+    setPinTarget(null)
+  }
 
   return (
     <div style={s.page}>
@@ -65,7 +81,7 @@ export default function PredictionsPage() {
                 <span style={{ ...s.slcStatus, color: score.status === '진행 중' ? 'var(--grn)' : 'var(--g)', background: score.status === '진행 중' ? 'rgba(52,199,89,.1)' : 'rgba(0,0,0,.06)' }}>
                   {score.status}
                 </span>
-                <button style={s.gearBtn} onClick={() => setPinModal(true)} title="관리자">⚙️</button>
+                <button style={s.gearBtn} onClick={openGearMenu} title="관리자">⚙️</button>
               </div>
             </div>
             <div style={s.slcMain}>
@@ -121,35 +137,131 @@ export default function PredictionsPage() {
               <span style={{ ...s.lh, color: 'var(--k)' }}>기아</span>
             </div>
             <div style={s.predList}>
-              {preds.map(p => <PredCard key={p.id} p={p} />)}
+              {sortedPreds.map((p, i) => (
+                <PredCard
+                  key={p.id}
+                  p={p}
+                  score={score}
+                  isTop={i === 0 && minDist !== Infinity}
+                />
+              ))}
             </div>
           </div>
         )}
       </div>
 
       {modalOpen && createPortal(<PredModal onClose={() => setModalOpen(false)} onSaved={() => { setModalOpen(false); fetchPreds() }} />, document.body)}
-      {pinModal && createPortal(<PinModal onClose={() => setPinModal(false)} onSuccess={() => { setPinModal(false); setScoreModal(true) }} />, document.body)}
+      {gearMenu && createPortal(<GearMenu onClose={() => setGearMenu(false)} onSelect={handleGearSelect} />, document.body)}
+      {pinTarget && createPortal(<PinModal onClose={() => setPinTarget(null)} onSuccess={handlePinSuccess} />, document.body)}
       {scoreModal && createPortal(<ScoreModal score={score} onClose={() => setScoreModal(false)} onSaved={() => { setScoreModal(false); fetchScore() }} />, document.body)}
+      {deleteModal && createPortal(<DeleteModal preds={preds} onClose={() => setDeleteModal(false)} onDeleted={fetchPreds} />, document.body)}
     </div>
   )
 }
 
-function PredCard({ p }) {
+function PredCard({ p, score, isTop }) {
   const isD = p.team === '두산'
   const dWin = p.score_doosan > p.score_kia
   const kWin = p.score_kia > p.score_doosan
+  const color = isD ? 'var(--d)' : 'var(--k)'
+
+  const cardStyle = {
+    ...s.pc,
+    borderLeft: `3px solid ${color}`,
+    ...(isTop ? {
+      border: `2px solid ${isD ? '#3A56B0' : '#E8334A'}`,
+      boxShadow: isD
+        ? '0 0 0 1px rgba(27,45,110,.15), 0 4px 20px rgba(27,45,110,.25)'
+        : '0 0 0 1px rgba(206,14,45,.15), 0 4px 20px rgba(206,14,45,.25)',
+      animation: 'glowCard 1.6s ease-in-out infinite alternate',
+    } : {}),
+  }
+
   return (
-    <div style={{ ...s.pc, borderLeft: `3px solid ${isD ? 'var(--d)' : 'var(--k)'}` }}>
+    <div style={cardStyle}>
+      {isTop && (
+        <div style={{ ...s.topBadge, background: isD ? 'var(--d)' : 'var(--k)' }}>
+          🏆 현재 1위
+        </div>
+      )}
       <div style={s.pcBody}>
         <div style={{ ...s.pcScore, color: 'var(--d)', opacity: kWin ? 0.45 : 1 }}>{p.score_doosan}</div>
         <div style={s.pcCenter}>
           <div style={s.pcName}>{p.name}</div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 3 }}>
             <img src={isD ? '/doosan.svg' : '/kia.svg'} style={s.pcLogo} alt={p.team} />
-            <span style={{ ...s.pcTlbl, color: isD ? 'var(--d)' : 'var(--k)' }}>{p.team}{p.cheer ? ` · "${p.cheer}"` : ''}</span>
+            <span style={{ ...s.pcTlbl, color }}>{p.team}{p.cheer ? ` · "${p.cheer}"` : ''}</span>
           </div>
         </div>
         <div style={{ ...s.pcScore, color: 'var(--k)', opacity: dWin ? 0.45 : 1 }}>{p.score_kia}</div>
+      </div>
+    </div>
+  )
+}
+
+function GearMenu({ onClose, onSelect }) {
+  return (
+    <div style={s.modalOv} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ ...s.modalSheet, borderRadius: 'var(--r)', maxWidth: 340, margin: '0 auto 40px' }}>
+        <div style={s.modalHdr}>
+          <span style={s.modalTtl}>⚙️ 관리자 메뉴</span>
+          <button style={s.modalX} onClick={onClose}>✕</button>
+        </div>
+        <div style={{ padding: '8px 0 12px' }}>
+          <button style={s.menuItem} onClick={() => onSelect('score')}>
+            <span style={s.menuIcon}>📊</span>
+            <div>
+              <div style={s.menuLabel}>현재 점수 수정하기</div>
+              <div style={s.menuSub}>실시간 스코어를 업데이트해요</div>
+            </div>
+            <span style={{ fontSize: 16, color: 'var(--g)' }}>›</span>
+          </button>
+          <div style={{ height: 1, background: 'var(--sep2)', margin: '0 18px' }} />
+          <button style={s.menuItem} onClick={() => onSelect('delete')}>
+            <span style={s.menuIcon}>🗑️</span>
+            <div>
+              <div style={s.menuLabel}>예측 삭제하기</div>
+              <div style={s.menuSub}>잘못 올려진 예측을 삭제해요</div>
+            </div>
+            <span style={{ fontSize: 16, color: 'var(--g)' }}>›</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DeleteModal({ preds, onClose, onDeleted }) {
+  async function del(id) {
+    await supabase.from('predictions').delete().eq('id', id)
+    onDeleted()
+  }
+  return (
+    <div style={s.modalOv} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={s.modalSheet}>
+        <div style={s.modalHandle} />
+        <div style={s.modalHdr}>
+          <span style={s.modalTtl}>🗑️ 예측 삭제</span>
+          <button style={s.modalX} onClick={onClose}>✕</button>
+        </div>
+        <div style={s.modalBody}>
+          {preds.length === 0 && <div style={{ color: 'var(--g)', fontSize: 14, textAlign: 'center', padding: '20px 0' }}>삭제할 예측이 없어요</div>}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {preds.map(p => {
+              const isD = p.team === '두산'
+              return (
+                <div key={p.id} style={s.delRow}>
+                  <img src={isD ? '/doosan.svg' : '/kia.svg'} style={{ width: 28, height: 28, objectFit: 'contain' }} alt={p.team} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700 }}>{p.name}</div>
+                    <div style={{ fontSize: 12, color: 'var(--g)' }}>{p.score_doosan} : {p.score_kia}{p.cheer ? ` · "${p.cheer}"` : ''}</div>
+                  </div>
+                  <button style={s.delBtn} onClick={() => del(p.id)}>삭제</button>
+                </div>
+              )
+            })}
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -168,11 +280,9 @@ function PredModal({ onClose, onSaved }) {
     if (!name.trim()) miss.push('이름')
     if (!team) miss.push('응원팀')
     if (miss.length) { setErr('누락된 항목 → ' + miss.join(', ')); return }
-
     const { error } = await supabase
       .from('predictions')
       .upsert({ name: name.trim(), team, score_doosan: sd, score_kia: sk, cheer: cheer.trim() }, { onConflict: 'name' })
-
     if (error) { setErr('저장 실패: ' + error.message); return }
     onSaved()
   }
@@ -349,6 +459,7 @@ const s = {
   slcInning: { fontSize: 11, fontWeight: 700, color: 'var(--g)', marginBottom: 4 },
   slcColon: { fontSize: 20, fontWeight: 800, color: 'var(--g2)' },
   slcHalf: { fontSize: 10, color: 'var(--g)', marginTop: 2 },
+  slcLogo: { width: 44, height: 44, objectFit: 'contain', display: 'block', margin: '0 auto 6px' },
   gearBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, padding: '2px 4px', opacity: 0.5, lineHeight: 1 },
   battleCard: { background: 'var(--card)', borderRadius: 'var(--r)', boxShadow: 'var(--shadow)', marginBottom: 12, overflow: 'hidden' },
   bcTop: { height: 3, background: 'linear-gradient(90deg, var(--d) 50%, var(--k) 50%)' },
@@ -356,7 +467,6 @@ const s = {
   bcTeam: { textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 },
   bcLogo: { width: 60, height: 60, objectFit: 'contain', display: 'block' },
   bcName: { fontSize: 12, fontWeight: 700, color: 'var(--g3)' },
-  slcLogo: { width: 44, height: 44, objectFit: 'contain', display: 'block', margin: '0 auto 6px' },
   bcVs: { display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: 'var(--g)' },
   bcRatioWrap: { padding: '0 14px 14px' },
   bcBarRow: { display: 'flex', height: 32, borderRadius: 10, overflow: 'hidden', gap: 2, marginBottom: 6 },
@@ -371,12 +481,19 @@ const s = {
   lh: { fontSize: 10, fontWeight: 700, textAlign: 'center', textTransform: 'uppercase', letterSpacing: '.4px' },
   predList: { display: 'flex', flexDirection: 'column', gap: 7 },
   pc: { background: 'var(--card)', borderRadius: 'var(--r)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' },
+  topBadge: { color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 12px', textAlign: 'center' },
   pcBody: { display: 'grid', gridTemplateColumns: '44px 1fr 44px', alignItems: 'center', gap: 6, padding: '8px 12px' },
   pcScore: { fontSize: 24, fontWeight: 800, textAlign: 'center', lineHeight: 1 },
   pcCenter: { textAlign: 'center' },
   pcName: { fontSize: 15, fontWeight: 700, color: 'var(--w)', marginBottom: 2 },
   pcLogo: { width: 18, height: 18, objectFit: 'contain' },
   pcTlbl: { fontSize: 12, fontWeight: 700 },
+  menuItem: { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', background: 'none', border: 'none', width: '100%', cursor: 'pointer', fontFamily: 'var(--body)', textAlign: 'left' },
+  menuIcon: { fontSize: 22, flexShrink: 0 },
+  menuLabel: { fontSize: 15, fontWeight: 600, color: 'var(--w)', marginBottom: 2 },
+  menuSub: { fontSize: 12, color: 'var(--g)' },
+  delRow: { display: 'flex', alignItems: 'center', gap: 10, background: 'var(--card2)', borderRadius: 'var(--rxs)', padding: '10px 12px' },
+  delBtn: { background: 'var(--k-light)', color: 'var(--k)', border: '1px solid var(--k)', borderRadius: 6, padding: '5px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--body)', flexShrink: 0 },
   modalOv: { display: 'flex', position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,.4)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', alignItems: 'flex-end', justifyContent: 'center' },
   modalSheet: { background: 'rgba(250,250,252,.98)', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 560, maxHeight: '92vh', overflowY: 'auto', paddingBottom: 20, animation: 'up .3s cubic-bezier(.4,0,.2,1)' },
   modalHandle: { width: 36, height: 4, background: 'var(--card3)', borderRadius: 2, margin: '11px auto 0' },

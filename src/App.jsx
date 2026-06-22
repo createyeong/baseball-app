@@ -15,6 +15,7 @@ export default function App() {
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
         @keyframes up { from { transform: translateY(100%) } to { transform: translateY(0) } }
         @keyframes glow { from { box-shadow: 0 0 6px rgba(255,149,0,.4) } to { box-shadow: 0 0 14px rgba(255,149,0,.75) } }
+        @keyframes glowCard { from { box-shadow: 0 0 8px rgba(27,45,110,.2) } to { box-shadow: 0 0 22px rgba(27,45,110,.45) } }
         @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
         input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
         * { -webkit-tap-highlight-color: transparent; }
