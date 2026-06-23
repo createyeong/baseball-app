@@ -863,7 +863,7 @@ function TicketModal({ password, onClose }) {
     setSaving(null)
   }
 
-  const allSeats = ROWS.flat().map(n => ({ no: n, name: SEAT_NAMES[n] || '' }))
+  const allSeats = ROWS.flat().map(n => ({ no: n, name: SEAT_NAMES[n] || '' })).sort((a, b) => a.no - b.no)
   const filtered = query.length >= 1
     ? allSeats.filter(s => s.name.includes(query))
     : allSeats
@@ -873,16 +873,16 @@ function TicketModal({ password, onClose }) {
 
   return (
     <div style={s.modalOv} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{ ...s.modalSheet, maxHeight: '88vh' }}>
+      <div style={{ ...s.modalSheet, maxHeight: '88vh', overflowY: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <div style={s.modalHandle} />
         <div style={s.modalHdr}>
           <span style={s.modalTtl}>🎟️ 티켓 수령 관리</span>
           <button style={s.modalX} onClick={onClose}>✕</button>
         </div>
-        <div style={{ padding: '8px 18px 4px', fontSize: 12, color: 'var(--g)' }}>
+        <div style={{ padding: '4px 18px 4px', fontSize: 12, color: 'var(--g)', flexShrink: 0 }}>
           {receivedCount} / {total}명 수령 완료
         </div>
-        <div style={{ padding: '8px 18px' }}>
+        <div style={{ padding: '8px 18px', flexShrink: 0 }}>
           <input
             style={{ ...s.finp, width: '100%' }}
             value={query}
@@ -890,7 +890,7 @@ function TicketModal({ password, onClose }) {
             placeholder="이름으로 검색"
           />
         </div>
-        <div style={{ overflowY: 'auto', maxHeight: 'calc(88vh - 160px)', padding: '0 18px 24px' }}>
+        <div style={{ overflowY: 'auto', flex: 1, padding: '0 18px 24px' }}>
           {filtered.map(({ no, name }) => {
             const done = received.has(no)
             const busy = saving === no
