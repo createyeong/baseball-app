@@ -36,6 +36,12 @@ export default function PredictionsPage() {
   const [adminPassword, setAdminPassword] = useState('')
   const [editTarget, setEditTarget] = useState(null) // { pred, pin }
   const [editPinModal, setEditPinModal] = useState(null) // prediction object waiting for PIN
+  const [toast, setToast] = useState('')
+
+  function showToast(msg) {
+    setToast(msg)
+    setTimeout(() => setToast(''), 3000)
+  }
 
   const fetchPreds = useCallback(async () => {
     const { data, error } = await supabase
@@ -201,7 +207,11 @@ export default function PredictionsPage() {
         )}
       </div>
 
-      {modalOpen && createPortal(<PredModal onClose={() => setModalOpen(false)} onSaved={() => { setModalOpen(false); fetchPreds() }} />, document.body)}
+      {toast && createPortal(
+        <div style={s.toast}>{toast}</div>,
+        document.body
+      )}
+      {modalOpen && createPortal(<PredModal onClose={() => setModalOpen(false)} onSaved={() => { setModalOpen(false); fetchPreds() }} onClosed={() => { setModalOpen(false); showToast('⏰ 예측이 종료되었습니다') }} />, document.body)}
       {editPinModal && createPortal(<EditPinModal pred={editPinModal} onClose={() => setEditPinModal(null)} onSuccess={(pin) => { setEditTarget({ pred: editPinModal, pin }); setEditPinModal(null) }} />, document.body)}
       {editTarget && createPortal(<EditModal pred={editTarget.pred} pin={editTarget.pin} onClose={() => setEditTarget(null)} onSaved={() => { setEditTarget(null); fetchPreds() }} />, document.body)}
       {gearMenu && createPortal(<GearMenu onClose={() => setGearMenu(false)} onSelect={handleGearSelect} />, document.body)}
@@ -416,7 +426,7 @@ function DeleteModal({ preds, password, locked, onClose, onDeleted, onToggleLock
   )
 }
 
-function PredModal({ onClose, onSaved }) {
+function PredModal({ onClose, onSaved, onClosed }) {
   const [name, setName] = useState('')
   const [team, setTeam] = useState('')
   const [sd, setSd] = useState(0)
@@ -444,7 +454,7 @@ function PredModal({ onClose, onSaved }) {
       return
     }
     if (data === false) {
-      setErr('예측이 마감되어 저장할 수 없어요.')
+      onClosed()
       return
     }
     onSaved()
@@ -872,6 +882,7 @@ const s = {
   topBadge: { color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 12px', textAlign: 'center' },
   pcBody: { display: 'grid', gridTemplateColumns: '44px 1fr 44px', alignItems: 'center', gap: 6, padding: '8px 12px' },
   editHint: { fontSize: 11, color: 'var(--g)', textAlign: 'center', marginTop: 10, padding: '6px 0' },
+  toast: { position: 'fixed', bottom: 88, left: '50%', transform: 'translateX(-50%)', background: 'rgba(30,30,30,.92)', color: '#fff', fontSize: 14, fontWeight: 600, padding: '11px 20px', borderRadius: 20, zIndex: 999, whiteSpace: 'nowrap', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' },
   pcScore: { fontSize: 24, fontWeight: 800, textAlign: 'center', lineHeight: 1 },
   pcCenter: { textAlign: 'center' },
   pcName: { fontSize: 15, fontWeight: 700, color: 'var(--w)', marginBottom: 2 },
