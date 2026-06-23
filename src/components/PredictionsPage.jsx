@@ -34,6 +34,8 @@ export default function PredictionsPage() {
   const [deleteModal, setDeleteModal] = useState(false)
   const [lateModal, setLateModal] = useState(false)
   const [adminPassword, setAdminPassword] = useState('')
+  const [editTarget, setEditTarget] = useState(null) // prediction object
+  const [editPinModal, setEditPinModal] = useState(null) // prediction object waiting for PIN
 
   const fetchPreds = useCallback(async () => {
     const { data, error } = await supabase.from('predictions').select('*').order('created_at', { ascending: true })
@@ -92,6 +94,8 @@ export default function PredictionsPage() {
   }
 
   const timeLeft = useCountdown()
+  const deadlinePassed = timeLeft <= 0
+  const isLocked = score.predictions_locked || deadlinePassed
 
   return (
     <div style={s.page}>
@@ -160,8 +164,8 @@ export default function PredictionsPage() {
             </div>
           </div>
           <div style={s.bcFoot}>
-            {!score.predictions_locked && <Countdown timeLeft={timeLeft} />}
-            {score.predictions_locked ? (
+            {!isLocked && <Countdown timeLeft={timeLeft} />}
+            {isLocked ? (
               <div style={s.lockedMsg}>🔒 예측이 마감됐어요</div>
             ) : (
               <button style={s.predBtn} onClick={() => setModalOpen(true)}>⚾ 예측 남기기</button>
@@ -185,6 +189,7 @@ export default function PredictionsPage() {
                   p={p}
                   isTop={calcDistance(p, score) === 0}
                   possible={isPossible(p, score)}
+                  onEdit={isLocked ? null : () => setEditPinModal(p)}
                 />
               ))}
             </div>
@@ -193,6 +198,8 @@ export default function PredictionsPage() {
       </div>
 
       {modalOpen && createPortal(<PredModal onClose={() => setModalOpen(false)} onSaved={() => { setModalOpen(false); fetchPreds() }} />, document.body)}
+      {editPinModal && createPortal(<EditPinModal pred={editPinModal} onClose={() => setEditPinModal(null)} onSuccess={() => { setEditTarget(editPinModal); setEditPinModal(null) }} />, document.body)}
+      {editTarget && createPortal(<EditModal pred={editTarget} onClose={() => setEditTarget(null)} onSaved={() => { setEditTarget(null); fetchPreds() }} />, document.body)}
       {gearMenu && createPortal(<GearMenu onClose={() => setGearMenu(false)} onSelect={handleGearSelect} />, document.body)}
       {pinTarget && createPortal(<PinModal onClose={() => setPinTarget(null)} onSuccess={handlePinSuccess} />, document.body)}
       {scoreModal && createPortal(<ScoreModal score={score} password={adminPassword} onClose={() => setScoreModal(false)} onSaved={() => { setScoreModal(false); fetchScore() }} />, document.body)}
@@ -231,7 +238,7 @@ const cd = {
   unit: { fontSize: 11, fontWeight: 600, color: 'var(--g)', marginRight: 3 },
 }
 
-function PredCard({ p, isTop, possible }) {
+function PredCard({ p, isTop, possible, onEdit }) {
   const isD = p.team === '두산'
   // 예측 기준 승리팀 (테두리 방향 결정)
   const predDWin = p.score_doosan > p.score_kia
@@ -259,7 +266,7 @@ function PredCard({ p, isTop, possible }) {
   }
 
   return (
-    <div style={cardStyle}>
+    <div style={{ ...cardStyle, cursor: onEdit ? 'pointer' : 'default' }} onClick={onEdit || undefined}>
       {isTop && (
         <div style={{ ...s.topBadge, background: predDWin ? 'var(--d)' : 'var(--k)' }}>
           🎯 예상 적중
@@ -276,6 +283,7 @@ function PredCard({ p, isTop, possible }) {
         </div>
         <div style={{ ...s.pcScore, color: 'var(--k)', opacity: dWin ? 0.45 : 1 }}>{p.score_kia}</div>
       </div>
+      {onEdit && <div style={s.pcEditHint}>✏️ 탭하여 수정</div>}
     </div>
   )
 }
@@ -411,16 +419,18 @@ function PredModal({ onClose, onSaved }) {
   const [sd, setSd] = useState(0)
   const [sk, setSk] = useState(0)
   const [cheer, setCheer] = useState('')
+  const [pin, setPin] = useState('')
   const [err, setErr] = useState('')
 
   async function submit() {
     const miss = []
     if (!name.trim()) miss.push('이름')
     if (!team) miss.push('응원팀')
+    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) miss.push('수정 비밀번호 (숫자 4자리)')
     if (miss.length) { setErr('누락된 항목 → ' + miss.join(', ')); return }
     const { error } = await supabase
       .from('predictions')
-      .insert({ name: name.trim(), team, score_doosan: sd, score_kia: sk, cheer: cheer.trim() || null })
+      .insert({ name: name.trim(), team, score_doosan: sd, score_kia: sk, cheer: cheer.trim() || null, pin })
     if (error) {
       setErr(error.code === '23505' ? '이미 같은 이름으로 등록된 예측이 있어요.' : '저장에 실패했어요. 잠시 후 다시 시도해 주세요.')
       return
@@ -459,6 +469,15 @@ function PredModal({ onClose, onSaved }) {
           </FormGroup>
           <FormGroup label="응원 한마디 (선택)">
             <input style={s.finp} value={cheer} onChange={e => setCheer(e.target.value)} placeholder="ex) 오늘은 꼭 이겨라!" maxLength={30} />
+          </FormGroup>
+          <FormGroup label="수정 비밀번호 (숫자 4자리)">
+            <input
+              style={{ ...s.finp, letterSpacing: 8, textAlign: 'center', fontSize: 20, fontWeight: 700 }}
+              type="number" inputMode="numeric" maxLength={4} value={pin}
+              onChange={e => setPin(e.target.value.slice(0, 4))}
+              placeholder="• • • •"
+            />
+            <div style={{ fontSize: 11, color: 'var(--g)', marginTop: 5 }}>예측을 나중에 수정할 때 필요해요. 꼭 기억해두세요!</div>
           </FormGroup>
           {err && <div style={s.ferr}>{err}</div>}
           <button type="button" style={s.modalSubmit} onClick={submit}>예측 제출하기</button>
@@ -601,6 +620,145 @@ function ScoreModal({ score, password, onClose, onSaved }) {
   )
 }
 
+function EditPinModal({ pred, onClose, onSuccess }) {
+  const [pin, setPin] = useState('')
+  const [err, setErr] = useState('')
+  const [checking, setChecking] = useState(false)
+
+  async function check() {
+    if (pin.length !== 4) { setErr('숫자 4자리를 입력해주세요'); return }
+    setChecking(true)
+    setErr('')
+    const { data } = await supabase
+      .from('predictions')
+      .select('id')
+      .eq('id', pred.id)
+      .eq('pin', pin)
+      .maybeSingle()
+    setChecking(false)
+    if (!data) { setErr('비밀번호가 틀렸어요'); return }
+    pred._verifiedPin = pin
+    onSuccess()
+  }
+
+  return (
+    <div style={s.modalOv}>
+      <div style={{ ...s.modalSheet, borderRadius: 'var(--r)', maxWidth: 340, margin: '0 auto 40px' }}>
+        <div style={s.modalHdr}>
+          <span style={s.modalTtl}>🔐 수정 비밀번호</span>
+          <button style={s.modalX} onClick={onClose}>✕</button>
+        </div>
+        <div style={s.modalBody}>
+          <div style={{ fontSize: 14, color: 'var(--g)', marginBottom: 14, textAlign: 'center' }}>
+            <strong style={{ color: 'var(--w)' }}>{pred.name}</strong>님의 예측 수정 비밀번호를 입력하세요
+          </div>
+          <input
+            style={{ ...s.finp, letterSpacing: 12, textAlign: 'center', fontSize: 24, fontWeight: 800, animation: err ? 'shake .3s ease' : 'none' }}
+            type="number" inputMode="numeric" maxLength={4} value={pin}
+            onChange={e => setPin(e.target.value.slice(0, 4))}
+            onKeyDown={e => e.key === 'Enter' && check()}
+            autoFocus
+          />
+          {err && <div style={{ ...s.ferr, marginTop: 8 }}>{err}</div>}
+          <button style={{ ...s.modalSubmit, marginTop: 12, opacity: checking ? .5 : 1 }} disabled={checking} onClick={check}>
+            {checking ? '확인 중…' : '확인'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function EditModal({ pred, onClose, onSaved }) {
+  const [name, setName] = useState(pred.name)
+  const [team, setTeam] = useState(pred.team)
+  const [sd, setSd] = useState(pred.score_doosan)
+  const [sk, setSk] = useState(pred.score_kia)
+  const [cheer, setCheer] = useState(pred.cheer || '')
+  const [err, setErr] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  async function save() {
+    if (!name.trim()) { setErr('이름을 입력해주세요'); return }
+    setSaving(true); setErr('')
+    const { data } = await supabase.rpc('update_prediction_by_pin', {
+      p_id: pred.id, p_pin: pred._verifiedPin,
+      p_name: name.trim(), p_team: team,
+      p_score_doosan: sd, p_score_kia: sk,
+      p_message: cheer.trim() || null,
+    })
+    setSaving(false)
+    if (!data) { setErr('수정에 실패했어요. 다시 시도해주세요.'); return }
+    onSaved()
+  }
+
+  async function remove() {
+    setSaving(true); setErr('')
+    const { data } = await supabase.rpc('delete_prediction_by_pin', {
+      p_id: pred.id, p_pin: pred._verifiedPin,
+    })
+    setSaving(false)
+    if (!data) { setErr('삭제에 실패했어요.'); return }
+    onSaved()
+  }
+
+  return (
+    <div style={s.modalOv}>
+      <div style={s.modalSheet}>
+        <div style={s.modalHandle} />
+        <div style={s.modalHdr}>
+          <span style={s.modalTtl}>✏️ 예측 수정</span>
+          <button style={s.modalX} onClick={onClose}>✕</button>
+        </div>
+        <div style={s.modalBody}>
+          <FormGroup label="이름">
+            <input style={s.finp} value={name} onChange={e => setName(e.target.value)} maxLength={10} />
+          </FormGroup>
+          <FormGroup label="응원팀">
+            <div style={s.tgrid}>
+              <button type="button" style={{ ...s.tbtn, ...(team === '두산' ? s.tbtnD : {}) }} onClick={() => setTeam('두산')}>
+                <img src="/doosan.svg" style={s.tbtnLogo} alt="두산" /> 두산
+              </button>
+              <button type="button" style={{ ...s.tbtn, ...(team === '기아' ? s.tbtnK : {}) }} onClick={() => setTeam('기아')}>
+                <img src="/kia.svg" style={s.tbtnLogo} alt="기아" /> 기아
+              </button>
+            </div>
+          </FormGroup>
+          <FormGroup label="예측 점수">
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <ScoreAdj label="두산" color="var(--d)" val={sd} onChange={setSd} />
+              <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--g)' }}>:</span>
+              <ScoreAdj label="기아" color="var(--k)" val={sk} onChange={setSk} />
+            </div>
+          </FormGroup>
+          <FormGroup label="응원 한마디 (선택)">
+            <input style={s.finp} value={cheer} onChange={e => setCheer(e.target.value)} placeholder="ex) 오늘은 꼭 이겨라!" maxLength={30} />
+          </FormGroup>
+          {err && <div style={s.ferr}>{err}</div>}
+          <button style={{ ...s.modalSubmit, opacity: saving ? .5 : 1 }} disabled={saving} onClick={save}>
+            {saving ? '저장 중…' : '수정 저장하기'}
+          </button>
+          <div style={{ height: 1, background: 'var(--sep)', margin: '14px 0' }} />
+          {!confirmDelete ? (
+            <button style={{ ...s.modalSubmit, background: 'transparent', color: 'var(--k)', border: '1px solid var(--k)' }} onClick={() => setConfirmDelete(true)}>
+              🗑️ 예측 삭제하기
+            </button>
+          ) : (
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 13, color: 'var(--g)', marginBottom: 10 }}>정말 삭제할까요? 되돌릴 수 없어요.</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button style={{ ...s.modalSubmit, flex: 1, background: 'var(--card2)', color: 'var(--w)' }} onClick={() => setConfirmDelete(false)}>취소</button>
+                <button style={{ ...s.modalSubmit, flex: 1, background: 'var(--k)', opacity: saving ? .5 : 1 }} disabled={saving} onClick={remove}>삭제</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function LateListModal({ onClose }) {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
@@ -704,6 +862,7 @@ const s = {
   pc: { background: 'var(--card)', borderRadius: 'var(--r)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' },
   topBadge: { color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 12px', textAlign: 'center' },
   pcBody: { display: 'grid', gridTemplateColumns: '44px 1fr 44px', alignItems: 'center', gap: 6, padding: '8px 12px' },
+  pcEditHint: { fontSize: 10, color: 'var(--g)', textAlign: 'center', padding: '4px 0 6px', borderTop: '1px solid var(--sep2)' },
   pcScore: { fontSize: 24, fontWeight: 800, textAlign: 'center', lineHeight: 1 },
   pcCenter: { textAlign: 'center' },
   pcName: { fontSize: 15, fontWeight: 700, color: 'var(--w)', marginBottom: 2 },
