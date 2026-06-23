@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
+import { ROWS, ROW_LABELS, SEAT_NAMES } from '../data'
 
 function calcDistance(p, score) {
   if (score.d === null || score.k === null) return Infinity
@@ -98,11 +99,14 @@ export default function PredictionsPage({ gearTrigger }) {
     setGearMenu(false)
     setPinTarget(target)
   }
+  const [ticketModal, setTicketModal] = useState(false)
+
   function handlePinSuccess(password) {
     setAdminPassword(password)
     if (pinTarget === 'score') setScoreModal(true)
     if (pinTarget === 'delete') setDeleteModal(true)
     if (pinTarget === 'late') setLateModal(true)
+    if (pinTarget === 'ticket') setTicketModal(true)
     setPinTarget(null)
   }
 
@@ -220,6 +224,7 @@ export default function PredictionsPage({ gearTrigger }) {
       {scoreModal && createPortal(<ScoreModal score={score} password={adminPassword} onClose={() => setScoreModal(false)} onSaved={() => { setScoreModal(false); fetchScore() }} />, document.body)}
       {deleteModal && createPortal(<DeleteModal preds={preds} password={adminPassword} locked={score.predictions_locked} onClose={() => setDeleteModal(false)} onDeleted={fetchPreds} onToggleLock={fetchScore} />, document.body)}
       {lateModal && createPortal(<LateListModal password={adminPassword} onClose={() => setLateModal(false)} />, document.body)}
+      {ticketModal && createPortal(<TicketModal password={adminPassword} onClose={() => setTicketModal(false)} />, document.body)}
     </div>
   )
 }
@@ -334,6 +339,15 @@ function GearMenu({ onClose, onSelect }) {
             <div>
               <div style={s.menuLabel}>늦은 도착 명단</div>
               <div style={s.menuSub}>늦게 도착 예정인 인원 확인</div>
+            </div>
+            <span style={{ fontSize: 16, color: 'var(--g)' }}>›</span>
+          </button>
+          <div style={{ height: 1, background: 'var(--sep2)', margin: '0 18px' }} />
+          <button style={s.menuItem} onClick={() => onSelect('ticket')}>
+            <span style={s.menuIcon}>🎟️</span>
+            <div>
+              <div style={s.menuLabel}>티켓 수령 관리</div>
+              <div style={s.menuSub}>수령 완료된 좌석을 표시해요</div>
             </div>
             <span style={{ fontSize: 16, color: 'var(--g)' }}>›</span>
           </button>
@@ -826,6 +840,81 @@ function LateListModal({ password, onClose }) {
   )
 }
 
+function TicketModal({ password, onClose }) {
+  const [received, setReceived] = useState(new Set())
+  const [query, setQuery] = useState('')
+  const [saving, setSaving] = useState(null)
+
+  useEffect(() => {
+    supabase.from('ticket_received').select('seat_no')
+      .then(({ data }) => setReceived(new Set((data || []).map(r => r.seat_no))))
+  }, [])
+
+  async function toggle(seatNo) {
+    setSaving(seatNo)
+    const { data } = await supabase.rpc('admin_toggle_ticket_received', { p_password: password, p_seat_no: seatNo })
+    if (data === true) {
+      setReceived(prev => {
+        const next = new Set(prev)
+        next.has(seatNo) ? next.delete(seatNo) : next.add(seatNo)
+        return next
+      })
+    }
+    setSaving(null)
+  }
+
+  const allSeats = ROWS.flat().map(n => ({ no: n, name: SEAT_NAMES[n] || '' }))
+  const filtered = query.length >= 1
+    ? allSeats.filter(s => s.name.includes(query))
+    : allSeats
+
+  const receivedCount = received.size
+  const total = allSeats.length
+
+  return (
+    <div style={s.modalOv} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ ...s.modalSheet, maxHeight: '88vh' }}>
+        <div style={s.modalHandle} />
+        <div style={s.modalHdr}>
+          <span style={s.modalTtl}>🎟️ 티켓 수령 관리</span>
+          <button style={s.modalX} onClick={onClose}>✕</button>
+        </div>
+        <div style={{ padding: '8px 18px 4px', fontSize: 12, color: 'var(--g)' }}>
+          {receivedCount} / {total}명 수령 완료
+        </div>
+        <div style={{ padding: '8px 18px' }}>
+          <input
+            style={{ ...s.finp, width: '100%' }}
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="이름으로 검색"
+          />
+        </div>
+        <div style={{ overflowY: 'auto', maxHeight: 'calc(88vh - 160px)', padding: '0 18px 24px' }}>
+          {filtered.map(({ no, name }) => {
+            const done = received.has(no)
+            const busy = saving === no
+            return (
+              <button
+                key={no}
+                style={{ ...s.ticketRow, ...(done ? s.ticketRowDone : {}) }}
+                onClick={() => toggle(no)}
+                disabled={busy}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: done ? 'var(--grn)' : 'var(--w)' }}>{name || '—'}</span>
+                  <span style={{ fontSize: 11, color: 'var(--g)' }}>{no}번 좌석</span>
+                </div>
+                <span style={{ fontSize: 18, marginLeft: 'auto' }}>{busy ? '…' : done ? '✅' : '○'}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ScoreField({ label, value, onChange, color }) {
   return (
     <div style={{ flex: 1 }}>
@@ -883,6 +972,8 @@ const s = {
   topBadge: { color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 12px', textAlign: 'center' },
   pcBody: { display: 'grid', gridTemplateColumns: '44px 1fr 44px', alignItems: 'center', gap: 6, padding: '8px 12px' },
   editHint: { fontSize: 11, color: 'var(--g)', textAlign: 'center', marginTop: 10, padding: '6px 0' },
+  ticketRow: { width: '100%', display: 'flex', alignItems: 'center', padding: '12px 14px', marginBottom: 6, background: 'var(--card)', border: '1px solid var(--sep)', borderRadius: 'var(--rxs)', cursor: 'pointer', fontFamily: 'var(--body)', textAlign: 'left' },
+  ticketRowDone: { background: 'rgba(52,199,89,.08)', border: '1px solid rgba(52,199,89,.3)' },
   toast: { position: 'fixed', bottom: 88, left: '50%', transform: 'translateX(-50%)', background: 'rgba(30,30,30,.92)', color: '#fff', fontSize: 14, fontWeight: 600, padding: '11px 20px', borderRadius: 20, zIndex: 999, whiteSpace: 'nowrap', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' },
   pcScore: { fontSize: 24, fontWeight: 800, textAlign: 'center', lineHeight: 1 },
   pcCenter: { textAlign: 'center' },

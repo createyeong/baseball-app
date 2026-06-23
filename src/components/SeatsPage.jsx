@@ -1,9 +1,24 @@
-import { Fragment, useState, useRef } from 'react'
+import { Fragment, useState, useRef, useEffect } from 'react'
 import { ROWS, ROW_LABELS, SEAT_NAMES } from '../data'
+import { supabase } from '../lib/supabase'
 
 export default function SeatsPage() {
   const [query, setQuery] = useState('')
+  const [received, setReceived] = useState(new Set())
   const inputRef = useRef(null)
+
+  useEffect(() => {
+    supabase.from('ticket_received').select('seat_no')
+      .then(({ data }) => setReceived(new Set((data || []).map(r => r.seat_no))))
+
+    const ch = supabase.channel('ticket_received_watch')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ticket_received' }, () => {
+        supabase.from('ticket_received').select('seat_no')
+          .then(({ data }) => setReceived(new Set((data || []).map(r => r.seat_no))))
+      })
+      .subscribe()
+    return () => supabase.removeChannel(ch)
+  }, [])
 
   const highlighted = new Set()
   if (query.length >= 2) {
@@ -17,6 +32,13 @@ export default function SeatsPage() {
       <div style={s.inner}>
         <div style={s.secHdr}>자리 <em style={{ color: 'var(--d)', fontStyle: 'normal' }}>안내</em></div>
         <div style={s.seatBadge}>중앙 네이비석 · 317구역</div>
+
+        {received.size > 0 && (
+          <div style={s.legendWrap}>
+            <span style={s.legendDot} />
+            <span style={s.legendTxt}>티켓 수령 완료</span>
+          </div>
+        )}
 
         {/* 검색 */}
         <div style={s.searchWrap}>
@@ -42,10 +64,11 @@ export default function SeatsPage() {
                 <div style={s.sgRl}>{ROW_LABELS[ri]}</div>
                 {row.map(n => {
                   const hl = highlighted.has(n)
+                  const done = received.has(n)
                   return (
-                    <div key={n} id={'sc'+n} style={{ ...s.sc, ...(hl ? s.scHl : {}) }}>
-                      <div style={{ ...s.scN, ...(hl ? { color: 'var(--y2)' } : {}) }}>{n}</div>
-                      <div style={{ ...s.scName, ...(hl ? { color: 'var(--y2)', fontWeight: 900 } : {}) }}>
+                    <div key={n} id={'sc'+n} style={{ ...s.sc, ...(hl ? s.scHl : done ? s.scDone : {}) }}>
+                      <div style={{ ...s.scN, ...(hl ? { color: 'var(--y2)' } : done ? { color: 'var(--grn)' } : {}) }}>{n}</div>
+                      <div style={{ ...s.scName, ...(hl ? { color: 'var(--y2)', fontWeight: 900 } : done ? { color: 'var(--grn)', fontWeight: 900 } : {}) }}>
                         {SEAT_NAMES[n] || ''}
                       </div>
                     </div>
@@ -71,7 +94,10 @@ const s = {
   page: { flex: '0 0 100%', width: '100%', height: '100%', overflowY: 'auto', padding: '18px 14px 72px', scrollbarWidth: 'none' },
   inner: { maxWidth: 640, margin: '0 auto' },
   secHdr: { fontSize: 22, fontWeight: 800, color: 'var(--w)', letterSpacing: '-.4px', marginBottom: 8 },
-  seatBadge: { display: 'inline-block', background: 'rgba(27,45,110,.12)', border: '1px solid rgba(27,45,110,.25)', borderRadius: 20, padding: '5px 14px', fontSize: 15, fontWeight: 700, color: 'var(--d)', marginBottom: 14 },
+  seatBadge: { display: 'inline-block', background: 'rgba(27,45,110,.12)', border: '1px solid rgba(27,45,110,.25)', borderRadius: 20, padding: '5px 14px', fontSize: 15, fontWeight: 700, color: 'var(--d)', marginBottom: 10 },
+  legendWrap: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 },
+  legendDot: { width: 10, height: 10, borderRadius: '50%', background: 'var(--grn)', flexShrink: 0 },
+  legendTxt: { fontSize: 11, color: 'var(--g)', fontWeight: 600 },
   searchWrap: { position: 'relative', marginBottom: 12 },
   searchInp: { width: '100%', background: 'var(--card)', border: 'none', borderRadius: 'var(--rs)', boxShadow: 'var(--shadow-sm)', color: 'var(--w)', fontFamily: 'var(--body)', fontSize: 15, padding: '11px 38px 11px 36px', outline: 'none' },
   searchIco: { position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 15, color: 'var(--g)', pointerEvents: 'none' },
@@ -82,6 +108,7 @@ const s = {
   sgRl: { gridColumn: '1 / -1', fontSize: 9, color: 'var(--g)', padding: '4px 0 1px', fontWeight: 500 },
   sc: { aspectRatio: '1', background: 'rgba(27,45,110,.07)', border: '1px solid rgba(27,45,110,.2)', borderRadius: 5, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 2 },
   scHl: { background: 'rgba(255,149,0,.22)', border: '1px solid var(--y)', animation: 'glow .9s ease-in-out infinite alternate' },
+  scDone: { background: 'rgba(52,199,89,.15)', border: '1px solid rgba(52,199,89,.4)' },
   scN: { fontSize: '6.5px', color: 'var(--d)', fontWeight: 600, lineHeight: 1.1 },
   scName: { fontSize: '9.5px', fontWeight: 700, color: 'var(--w)', lineHeight: 1.1, textAlign: 'center', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   gateCard: { background: 'linear-gradient(135deg,rgba(27,45,110,.1),rgba(27,45,110,.04))', border: '1px solid rgba(27,45,110,.2)', borderRadius: 'var(--r)', padding: 14, boxShadow: 'var(--shadow-sm)', marginBottom: 10 },

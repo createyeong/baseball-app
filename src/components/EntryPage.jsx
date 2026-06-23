@@ -36,7 +36,7 @@ export default function EntryPage({ onNav }) {
         <div style={s.lateBanner}>
           <div style={s.lateBannerLeft}>
             <div style={s.lateBannerTitle}>⚠️ 6:30 이후 도착 예정이신가요?</div>
-            <div style={s.lateBannerSub}>도착 예정 시간을 미리 남겨주세요 — 별도로 안내드릴게요</div>
+            <div style={s.lateBannerSub}>도착 예정 시간을 미리 남겨주세요<br />별도로 안내드릴게요</div>
           </div>
           <button style={s.lateBtn} onClick={() => setModalOpen(true)}>
             등록하기
