@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import HomePage from './components/HomePage'
 import EntryPage from './components/EntryPage'
 import SeatsPage from './components/SeatsPage'
@@ -9,6 +9,7 @@ const TABS = ['홈', '입장', '자리', '예측', '먹거리']
 
 export default function App() {
   const [tab, setTab] = useState(0)
+  const gearTrigger = useRef(null)
 
   return (
     <>
@@ -34,10 +35,10 @@ export default function App() {
 
       <div style={s.pw}>
         <div style={{ ...s.slider, transform: `translateX(-${tab * 100}%)` }}>
-          <HomePage onNav={setTab} />
+          <HomePage onNav={setTab} onGearOpen={() => gearTrigger.current?.()} />
           <EntryPage onNav={setTab} />
           <SeatsPage />
-          <PredictionsPage />
+          <PredictionsPage gearTrigger={gearTrigger} />
           <FoodPage />
         </div>
       </div>

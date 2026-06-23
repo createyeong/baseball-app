@@ -24,7 +24,7 @@ function useCountdown() {
   return timeLeft
 }
 
-export default function PredictionsPage() {
+export default function PredictionsPage({ gearTrigger }) {
   const [preds, setPreds] = useState([])
   const [score, setScore] = useState({ d: null, k: null, inning: null, half: '초', status: '경기 전', predictions_locked: false })
   const [modalOpen, setModalOpen] = useState(false)
@@ -37,6 +37,10 @@ export default function PredictionsPage() {
   const [editTarget, setEditTarget] = useState(null) // { pred, pin }
   const [editPinModal, setEditPinModal] = useState(null) // prediction object waiting for PIN
   const [toast, setToast] = useState('')
+
+  useEffect(() => {
+    if (gearTrigger) gearTrigger.current = () => setGearMenu(true)
+  }, [gearTrigger])
 
   function showToast(msg) {
     setToast(msg)
@@ -116,12 +120,9 @@ export default function PredictionsPage() {
           <div style={s.slcBody}>
             <div style={s.slcHeader}>
               <span style={s.slcTitle}>실시간 스코어</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ ...s.slcStatus, color: score.status === '진행 중' ? 'var(--grn)' : 'var(--g)', background: score.status === '진행 중' ? 'rgba(52,199,89,.1)' : 'rgba(0,0,0,.06)' }}>
-                  {score.status}
-                </span>
-                <button type="button" aria-label="관리자 메뉴 열기" style={s.gearBtn} onClick={openGearMenu} title="관리자">⚙️</button>
-              </div>
+              <span style={{ ...s.slcStatus, color: score.status === '진행 중' ? 'var(--grn)' : 'var(--g)', background: score.status === '진행 중' ? 'rgba(52,199,89,.1)' : 'rgba(0,0,0,.06)' }}>
+                {score.status}
+              </span>
             </div>
             <div style={s.slcMain}>
               <div style={s.slcTeam}>

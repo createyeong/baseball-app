@@ -1,4 +1,4 @@
-export default function HomePage({ onNav }) {
+export default function HomePage({ onNav, onGearOpen }) {
   return (
     <div style={s.page}>
       <div style={s.inner}>
@@ -35,6 +35,11 @@ export default function HomePage({ onNav }) {
         <QuickBtn emoji="🪑" title="자리 확인" sub="내 좌석 번호 찾기" onClick={() => onNav(2)} />
         <QuickBtn emoji="⚾" title="예측 참여" sub="승리팀·점수 예측하기" onClick={() => onNav(3)} />
         <QuickBtn emoji="🍗" title="먹거리 탐색" sub="잠실 맛집 & 꿀팁" onClick={() => onNav(4)} />
+
+        <div style={s.footer}>
+          <span style={s.footerText}>Made by CreateYeong</span>
+          <button style={s.footerGear} onClick={onGearOpen} aria-label="관리자 메뉴">⚙️</button>
+        </div>
       </div>
     </div>
   )
@@ -93,4 +98,7 @@ const s = {
   quickTitle: { fontSize: 15, fontWeight: 700, color: 'var(--w)', marginBottom: 2 },
   quickSub: { fontSize: 12, color: 'var(--g)' },
   quickArrow: { marginLeft: 'auto', fontSize: 20, color: 'var(--g)' },
+  footer: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, padding: '10px 4px' },
+  footerText: { fontSize: 11, color: 'var(--g)', fontWeight: 500 },
+  footerGear: { background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, opacity: 0.35, padding: '4px 6px', lineHeight: 1 },
 }
