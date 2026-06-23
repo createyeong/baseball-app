@@ -59,7 +59,6 @@ export default function SeatsPage() {
               </div>
             )}
           </div>
-          <div style={s.sgCenter}>
           <div style={s.sg}>
             {ROWS.map((row, ri) => (
               <Fragment key={ROW_LABELS[ri]}>
@@ -78,7 +77,6 @@ export default function SeatsPage() {
                 })}
               </Fragment>
             ))}
-          </div>
           </div>
         </div>
 
@@ -108,8 +106,7 @@ const s = {
   sgWrap: { background: 'var(--card)', borderRadius: 'var(--r)', boxShadow: 'var(--shadow-sm)', padding: 14, marginBottom: 10, overflowX: 'auto' },
   sgLblRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   sgLbl: { fontSize: 10, fontWeight: 600, color: 'var(--g)', letterSpacing: '.6px', textTransform: 'uppercase' },
-  sgCenter: { display: 'flex', justifyContent: 'center' },
-  sg: { display: 'grid', gridTemplateColumns: 'repeat(10, 46px)', gap: 4 },
+  sg: { display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 4 },
   sgRl: { gridColumn: '1 / -1', fontSize: 9, color: 'var(--g)', padding: '4px 0 1px', fontWeight: 500 },
   sc: { aspectRatio: '1', background: 'rgba(27,45,110,.07)', border: '1px solid rgba(27,45,110,.2)', borderRadius: 5, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 2 },
   scHl: { background: 'rgba(255,149,0,.22)', border: '1px solid var(--y)', animation: 'glow .9s ease-in-out infinite alternate' },
