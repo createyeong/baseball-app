@@ -13,6 +13,17 @@ function isPossible(p, score) {
   return p.score_doosan >= score.d && p.score_kia >= score.k
 }
 
+const DEADLINE = new Date('2026-06-26T18:30:00+09:00')
+
+function useCountdown() {
+  const [timeLeft, setTimeLeft] = useState(() => DEADLINE - Date.now())
+  useEffect(() => {
+    const t = setInterval(() => setTimeLeft(DEADLINE - Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [])
+  return timeLeft
+}
+
 export default function PredictionsPage() {
   const [preds, setPreds] = useState([])
   const [score, setScore] = useState({ d: null, k: null, inning: null, half: '초', status: '경기 전', predictions_locked: false })
@@ -80,9 +91,14 @@ export default function PredictionsPage() {
     setPinTarget(null)
   }
 
+  const timeLeft = useCountdown()
+
   return (
     <div style={s.page}>
       <div style={s.inner}>
+
+        {/* 섹션 헤더 */}
+        <div style={s.secHdr}>스코어 <em style={{ color: 'var(--d)', fontStyle: 'normal' }}>예측하기</em></div>
 
         {/* 실시간 스코어 */}
         <div style={s.scoreLiveCard}>
@@ -140,6 +156,7 @@ export default function PredictionsPage() {
             </div>
           </div>
           <div style={s.bcFoot}>
+            {!score.predictions_locked && <Countdown timeLeft={timeLeft} />}
             {score.predictions_locked ? (
               <div style={s.lockedMsg}>🔒 예측이 마감됐어요</div>
             ) : (
@@ -179,6 +196,35 @@ export default function PredictionsPage() {
       {lateModal && createPortal(<LateListModal onClose={() => setLateModal(false)} />, document.body)}
     </div>
   )
+}
+
+function Countdown({ timeLeft }) {
+  if (timeLeft <= 0) return null
+  const totalSec = Math.floor(timeLeft / 1000)
+  const d = Math.floor(totalSec / 86400)
+  const h = Math.floor((totalSec % 86400) / 3600)
+  const m = Math.floor((totalSec % 3600) / 60)
+  const sec = totalSec % 60
+  const pad = n => String(n).padStart(2, '0')
+  return (
+    <div style={cd.wrap}>
+      <span style={cd.label}>⏳ 예측 마감까지</span>
+      <div style={cd.nums}>
+        {d > 0 && <><span style={cd.num}>{d}</span><span style={cd.unit}>일</span></>}
+        <span style={cd.num}>{pad(h)}</span><span style={cd.unit}>시간</span>
+        <span style={cd.num}>{pad(m)}</span><span style={cd.unit}>분</span>
+        <span style={cd.num}>{pad(sec)}</span><span style={cd.unit}>초</span>
+      </div>
+    </div>
+  )
+}
+
+const cd = {
+  wrap: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(27,45,110,.06)', border: '1px solid rgba(27,45,110,.15)', borderLeft: '3px solid var(--d)', borderRadius: 'var(--rxs)', padding: '9px 12px', marginBottom: 10 },
+  label: { fontSize: 11, fontWeight: 600, color: 'var(--g)' },
+  nums: { display: 'flex', alignItems: 'baseline', gap: 3 },
+  num: { fontSize: 17, fontWeight: 800, color: 'var(--d)', fontVariantNumeric: 'tabular-nums' },
+  unit: { fontSize: 10, fontWeight: 600, color: 'var(--g)', marginRight: 2 },
 }
 
 function PredCard({ p, isTop, possible }) {
@@ -612,6 +658,7 @@ function ScoreField({ label, value, onChange, color }) {
 const s = {
   page: { flex: '0 0 100%', width: '100%', height: '100%', overflowY: 'auto', padding: '18px 14px 72px', scrollbarWidth: 'none' },
   inner: { maxWidth: 640, margin: '0 auto' },
+  secHdr: { fontSize: 22, fontWeight: 800, color: 'var(--w)', letterSpacing: '-.4px', marginBottom: 14 },
   scoreLiveCard: { background: 'var(--card)', borderRadius: 'var(--r)', boxShadow: 'var(--shadow)', marginBottom: 12, overflow: 'hidden' },
   slcTop: { height: 3, background: 'linear-gradient(90deg, var(--d) 50%, var(--k) 50%)' },
   slcBody: { padding: 16 },
