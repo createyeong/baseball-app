@@ -97,9 +97,6 @@ export default function PredictionsPage() {
     <div style={s.page}>
       <div style={s.inner}>
 
-        {/* 섹션 헤더 */}
-        <div style={s.secHdr}>스코어 <em style={{ color: 'var(--d)', fontStyle: 'normal' }}>예측하기</em></div>
-
         {/* 실시간 스코어 */}
         <div style={s.scoreLiveCard}>
           <div style={s.slcTop} />
@@ -135,6 +132,13 @@ export default function PredictionsPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* 예측 섹션 헤더 */}
+        <div style={s.predSecDivider}>
+          <div style={s.predSecLine} />
+          <div style={s.predSecHdr}>스코어 <em style={{ color: 'var(--d)', fontStyle: 'normal' }}>예측하기</em></div>
+          <div style={s.predSecLine} />
         </div>
 
         {/* 응원 배틀 */}
@@ -220,11 +224,11 @@ function Countdown({ timeLeft }) {
 }
 
 const cd = {
-  wrap: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(27,45,110,.06)', border: '1px solid rgba(27,45,110,.15)', borderLeft: '3px solid var(--d)', borderRadius: 'var(--rxs)', padding: '9px 12px', marginBottom: 10 },
+  wrap: { display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(27,45,110,.06)', border: '1px solid rgba(27,45,110,.15)', borderRadius: 'var(--rxs)', padding: '10px 12px', marginBottom: 10, gap: 5 },
   label: { fontSize: 11, fontWeight: 600, color: 'var(--g)' },
   nums: { display: 'flex', alignItems: 'baseline', gap: 3 },
-  num: { fontSize: 17, fontWeight: 800, color: 'var(--d)', fontVariantNumeric: 'tabular-nums' },
-  unit: { fontSize: 10, fontWeight: 600, color: 'var(--g)', marginRight: 2 },
+  num: { fontSize: 20, fontWeight: 800, color: 'var(--d)', fontVariantNumeric: 'tabular-nums' },
+  unit: { fontSize: 11, fontWeight: 600, color: 'var(--g)', marginRight: 3 },
 }
 
 function PredCard({ p, isTop, possible }) {
@@ -659,6 +663,9 @@ const s = {
   page: { flex: '0 0 100%', width: '100%', height: '100%', overflowY: 'auto', padding: '18px 14px 72px', scrollbarWidth: 'none' },
   inner: { maxWidth: 640, margin: '0 auto' },
   secHdr: { fontSize: 22, fontWeight: 800, color: 'var(--w)', letterSpacing: '-.4px', marginBottom: 14 },
+  predSecDivider: { display: 'flex', alignItems: 'center', gap: 10, margin: '18px 0 14px' },
+  predSecLine: { flex: 1, height: 1, background: 'var(--sep)' },
+  predSecHdr: { fontSize: 16, fontWeight: 800, color: 'var(--w)', whiteSpace: 'nowrap', letterSpacing: '-.3px' },
   scoreLiveCard: { background: 'var(--card)', borderRadius: 'var(--r)', boxShadow: 'var(--shadow)', marginBottom: 12, overflow: 'hidden' },
   slcTop: { height: 3, background: 'linear-gradient(90deg, var(--d) 50%, var(--k) 50%)' },
   slcBody: { padding: 16 },

@@ -102,7 +102,12 @@ function LateModal({ onClose, onSaved }) {
         <div style={{ padding: '24px 18px', textAlign: 'center' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>🎉</div>
           <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>{name}님 등록됐어요!</div>
-          <div style={{ fontSize: 13, color: 'var(--g)' }}>도착 예정 {time} · 인솔 선생님께 전달될 거예요</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--w)', marginBottom: 4 }}>도착 예정 {time}</div>
+          <div style={{ fontSize: 13, color: 'var(--g)', lineHeight: 1.7 }}>
+            별도의 연락을 드리도록 하겠습니다.<br />
+            도착 예정 시간이 변경되면<br />
+            김기영 스탭에게 연락주세요.
+          </div>
           <button style={{ ...s.submitBtn, marginTop: 20 }} onClick={onSaved}>확인</button>
         </div>
       </div>
@@ -138,7 +143,7 @@ function LateModal({ onClose, onSaved }) {
 
           <div style={s.fg}>
             <label style={s.flbl}>추가 전달사항 (선택)</label>
-            <input style={s.finp} value={message} onChange={e => setMessage(e.target.value)} placeholder="ex) 지하철 지연 중이에요" maxLength={50} />
+            <input style={s.finp} value={message} onChange={e => setMessage(e.target.value)} placeholder="" maxLength={50} />
           </div>
 
           {err && <div style={s.ferr}>{err}</div>}

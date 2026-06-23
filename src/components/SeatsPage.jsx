@@ -59,8 +59,7 @@ export default function SeatsPage() {
         {/* 좌석 안내 카드 */}
         <div style={s.gateCard}>
           <div style={s.gateT1}>입장 게이트</div>
-          <div style={s.gateT2}>2-1 GATE</div>
-          <div style={s.gateT3}>3루 출입구</div>
+          <div style={s.gateT2}>2-1 GATE · 3루 출입구</div>
         </div>
 
       </div>
