@@ -193,6 +193,7 @@ export default function PredictionsPage() {
                 />
               ))}
             </div>
+            {!isLocked && <div style={s.editHint}>예측 카드를 탭하면 비밀번호로 수정할 수 있어요</div>}
           </div>
         )}
       </div>
@@ -283,7 +284,6 @@ function PredCard({ p, isTop, possible, onEdit }) {
         </div>
         <div style={{ ...s.pcScore, color: 'var(--k)', opacity: dWin ? 0.45 : 1 }}>{p.score_kia}</div>
       </div>
-      {onEdit && <div style={s.pcEditHint}>✏️ 탭하여 수정</div>}
     </div>
   )
 }
@@ -862,7 +862,7 @@ const s = {
   pc: { background: 'var(--card)', borderRadius: 'var(--r)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' },
   topBadge: { color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 12px', textAlign: 'center' },
   pcBody: { display: 'grid', gridTemplateColumns: '44px 1fr 44px', alignItems: 'center', gap: 6, padding: '8px 12px' },
-  pcEditHint: { fontSize: 10, color: 'var(--g)', textAlign: 'center', padding: '4px 0 6px', borderTop: '1px solid var(--sep2)' },
+  editHint: { fontSize: 11, color: 'var(--g)', textAlign: 'center', marginTop: 10, padding: '6px 0' },
   pcScore: { fontSize: 24, fontWeight: 800, textAlign: 'center', lineHeight: 1 },
   pcCenter: { textAlign: 'center' },
   pcName: { fontSize: 15, fontWeight: 700, color: 'var(--w)', marginBottom: 2 },
