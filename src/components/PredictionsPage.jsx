@@ -840,15 +840,24 @@ function LateListModal({ password, onClose }) {
   )
 }
 
+const TIME_SLOTS_ORDER = ['6:45', '7:00', '7:15', '7:30', '7:45', '8:00 이후']
+
 function TicketModal({ password, onClose }) {
   const [received, setReceived] = useState(new Set())
+  const [lateMap, setLateMap] = useState({}) // name → arrival_time
   const [query, setQuery] = useState('')
   const [saving, setSaving] = useState(null)
 
   useEffect(() => {
     supabase.from('ticket_received').select('seat_no')
       .then(({ data }) => setReceived(new Set((data || []).map(r => r.seat_no))))
-  }, [])
+    supabase.rpc('admin_list_late_arrivals', { p_password: password })
+      .then(({ data }) => {
+        const map = {}
+        ;(data || []).forEach(r => { map[r.name] = r.arrival_time })
+        setLateMap(map)
+      })
+  }, [password])
 
   async function toggle(seatNo) {
     setSaving(seatNo)
@@ -864,12 +873,42 @@ function TicketModal({ password, onClose }) {
   }
 
   const allSeats = ROWS.flat().map(n => ({ no: n, name: SEAT_NAMES[n] || '' })).sort((a, b) => a.no - b.no)
-  const filtered = query.length >= 1
-    ? allSeats.filter(s => s.name.includes(query))
-    : allSeats
+
+  const filtered = query.length >= 1 ? allSeats.filter(s => s.name.includes(query)) : null
+
+  // 그룹 분류 (검색 없을 때)
+  const notReceived = allSeats.filter(s => !received.has(s.no))
+  const receivedSeats = allSeats.filter(s => received.has(s.no))
+
+  // 미수령: 늦은도착 시간대별 그룹 + 일반
+  const lateGroups = TIME_SLOTS_ORDER.map(slot => ({
+    slot,
+    seats: notReceived.filter(s => lateMap[s.name] === slot),
+  })).filter(g => g.seats.length > 0)
+  const normalNotReceived = notReceived.filter(s => !lateMap[s.name])
 
   const receivedCount = received.size
   const total = allSeats.length
+
+  function SeatRow({ no, name }) {
+    const done = received.has(no)
+    const busy = saving === no
+    const lateTime = lateMap[name]
+    return (
+      <button
+        key={no}
+        style={{ ...s.ticketRow, ...(done ? s.ticketRowDone : {}) }}
+        onClick={() => toggle(no)}
+        disabled={busy}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: done ? 'var(--grn)' : 'var(--w)' }}>{name || '—'}</span>
+          <span style={{ fontSize: 11, color: 'var(--g)' }}>{no}번 좌석{lateTime && !done ? ` · 🕐 ${lateTime} 도착 예정` : ''}</span>
+        </div>
+        <span style={{ fontSize: 18, marginLeft: 'auto' }}>{busy ? '…' : done ? '✅' : '○'}</span>
+      </button>
+    )
+  }
 
   return (
     <div style={s.modalOv} onClick={e => e.target === e.currentTarget && onClose()}>
@@ -891,24 +930,33 @@ function TicketModal({ password, onClose }) {
           />
         </div>
         <div style={{ overflowY: 'auto', flex: 1, padding: '0 18px 24px' }}>
-          {filtered.map(({ no, name }) => {
-            const done = received.has(no)
-            const busy = saving === no
-            return (
-              <button
-                key={no}
-                style={{ ...s.ticketRow, ...(done ? s.ticketRowDone : {}) }}
-                onClick={() => toggle(no)}
-                disabled={busy}
-              >
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: done ? 'var(--grn)' : 'var(--w)' }}>{name || '—'}</span>
-                  <span style={{ fontSize: 11, color: 'var(--g)' }}>{no}번 좌석</span>
+          {filtered ? (
+            filtered.map(({ no, name }) => <SeatRow key={no} no={no} name={name} />)
+          ) : (
+            <>
+              {/* 미수령 — 늦은도착 시간대별 */}
+              {lateGroups.map(({ slot, seats }) => (
+                <div key={slot}>
+                  <div style={s.ticketGroupHdr}>⏰ {slot} 도착 예정</div>
+                  {seats.map(({ no, name }) => <SeatRow key={no} no={no} name={name} />)}
                 </div>
-                <span style={{ fontSize: 18, marginLeft: 'auto' }}>{busy ? '…' : done ? '✅' : '○'}</span>
-              </button>
-            )
-          })}
+              ))}
+              {/* 미수령 — 일반 */}
+              {normalNotReceived.length > 0 && (
+                <div>
+                  {lateGroups.length > 0 && <div style={s.ticketGroupHdr}>📋 미수령</div>}
+                  {normalNotReceived.map(({ no, name }) => <SeatRow key={no} no={no} name={name} />)}
+                </div>
+              )}
+              {/* 수령 완료 */}
+              {receivedSeats.length > 0 && (
+                <div>
+                  <div style={{ ...s.ticketGroupHdr, color: 'var(--grn)' }}>✅ 수령 완료</div>
+                  {receivedSeats.map(({ no, name }) => <SeatRow key={no} no={no} name={name} />)}
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -974,6 +1022,7 @@ const s = {
   editHint: { fontSize: 11, color: 'var(--g)', textAlign: 'center', marginTop: 10, padding: '6px 0' },
   ticketRow: { width: '100%', display: 'flex', alignItems: 'center', padding: '12px 14px', marginBottom: 6, background: 'var(--card)', border: '1px solid var(--sep)', borderRadius: 'var(--rxs)', cursor: 'pointer', fontFamily: 'var(--body)', textAlign: 'left' },
   ticketRowDone: { background: 'rgba(52,199,89,.08)', border: '1px solid rgba(52,199,89,.3)' },
+  ticketGroupHdr: { fontSize: 11, fontWeight: 700, color: 'var(--g)', letterSpacing: '.4px', padding: '14px 2px 6px' },
   toast: { position: 'fixed', bottom: 88, left: '50%', transform: 'translateX(-50%)', background: 'rgba(30,30,30,.92)', color: '#fff', fontSize: 14, fontWeight: 600, padding: '11px 20px', borderRadius: 20, zIndex: 999, whiteSpace: 'nowrap', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' },
   pcScore: { fontSize: 24, fontWeight: 800, textAlign: 'center', lineHeight: 1 },
   pcCenter: { textAlign: 'center' },

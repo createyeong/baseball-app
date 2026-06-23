@@ -1,6 +1,9 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
+import { ROWS, SEAT_NAMES } from '../data'
+
+const ALL_NAMES = [...new Set(ROWS.flat().map(n => SEAT_NAMES[n]).filter(Boolean))].sort()
 
 const TIME_SLOTS = ['6:45', '7:00', '7:15', '7:30', '7:45', '8:00 이후']
 
@@ -73,19 +76,36 @@ export default function EntryPage({ onNav }) {
 }
 
 function LateModal({ onClose, onSaved }) {
-  const [name, setName] = useState('')
+  const [query, setQuery] = useState('')
+  const [selectedName, setSelectedName] = useState('')
   const [time, setTime] = useState('')
   const [message, setMessage] = useState('')
   const [err, setErr] = useState('')
   const [done, setDone] = useState(false)
+  const inputRef = useRef(null)
+
+  const suggestions = query.length >= 1 && !selectedName
+    ? ALL_NAMES.filter(n => n.includes(query)).slice(0, 8)
+    : []
+
+  function selectName(n) {
+    setSelectedName(n)
+    setQuery(n)
+  }
+
+  function clearName() {
+    setSelectedName('')
+    setQuery('')
+    setTimeout(() => inputRef.current?.focus(), 50)
+  }
 
   async function submit() {
-    if (!name.trim()) { setErr('이름을 입력해주세요'); return }
+    if (!selectedName) { setErr('명단에서 이름을 선택해주세요'); return }
     if (!time) { setErr('도착 예정 시간을 선택해주세요'); return }
     setErr('')
 
     const { error } = await supabase.rpc('upsert_late_arrival', {
-      p_name: name.trim(),
+      p_name: selectedName,
       p_arrival_time: time,
       p_message: message.trim() || null,
     })
@@ -103,7 +123,7 @@ function LateModal({ onClose, onSaved }) {
         </div>
         <div style={{ padding: '24px 18px', textAlign: 'center' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>🎉</div>
-          <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>{name}님 등록됐어요!</div>
+          <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>{selectedName}님 등록됐어요!</div>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--w)', marginBottom: 4 }}>도착 예정 {time}</div>
           <div style={{ fontSize: 13, color: 'var(--g)', lineHeight: 1.7 }}>
             별도의 연락을 드리도록 하겠습니다.<br />
@@ -126,8 +146,30 @@ function LateModal({ onClose, onSaved }) {
         </div>
         <div style={s.modalBody}>
           <div style={s.fg}>
-            <label style={s.flbl}>이름</label>
-            <input style={s.finp} value={name} onChange={e => setName(e.target.value)} placeholder="이름을 입력하세요" maxLength={10} />
+            <label style={s.flbl}>이름 (명단에서 선택)</label>
+            <div style={{ position: 'relative' }}>
+              <input
+                ref={inputRef}
+                style={{ ...s.finp, paddingRight: selectedName ? 36 : 12 }}
+                value={query}
+                onChange={e => { setQuery(e.target.value); setSelectedName('') }}
+                placeholder="이름으로 검색"
+                readOnly={!!selectedName}
+              />
+              {selectedName && (
+                <button onClick={clearName} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'var(--g)', border: 'none', borderRadius: '50%', width: 18, height: 18, color: '#fff', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>✕</button>
+              )}
+            </div>
+            {suggestions.length > 0 && (
+              <div style={s.suggestBox}>
+                {suggestions.map(n => (
+                  <button key={n} style={s.suggestItem} onClick={() => selectName(n)}>{n}</button>
+                ))}
+              </div>
+            )}
+            {query.length >= 1 && !selectedName && suggestions.length === 0 && (
+              <div style={{ fontSize: 12, color: 'var(--g)', marginTop: 6 }}>명단에서 찾을 수 없어요</div>
+            )}
           </div>
 
           <div style={s.fg}>
@@ -180,6 +222,8 @@ const s = {
   modalBody: { padding: '14px 18px' },
   fg: { marginBottom: 16 },
   flbl: { fontSize: 11, fontWeight: 600, color: 'var(--g)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 7, display: 'block' },
+  suggestBox: { background: 'var(--card)', border: '1px solid var(--sep)', borderRadius: 'var(--rxs)', marginTop: 4, overflow: 'hidden' },
+  suggestItem: { display: 'block', width: '100%', padding: '11px 14px', background: 'none', border: 'none', borderBottom: '1px solid var(--sep2)', fontFamily: 'var(--body)', fontSize: 14, fontWeight: 600, color: 'var(--w)', textAlign: 'left', cursor: 'pointer' },
   finp: { width: '100%', background: 'var(--card2)', border: '1px solid var(--sep)', borderRadius: 'var(--rxs)', color: 'var(--w)', fontFamily: 'var(--body)', fontSize: 15, padding: '10px 12px', outline: 'none' },
   timeGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 },
   timeBtn: { padding: '10px 8px', border: '2px solid var(--sep)', borderRadius: 'var(--rxs)', background: 'var(--card2)', fontFamily: 'var(--body)', fontSize: 14, fontWeight: 600, cursor: 'pointer', color: 'var(--g3)', transition: 'all .15s' },
