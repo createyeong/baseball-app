@@ -84,9 +84,11 @@ function LateModal({ onClose, onSaved }) {
     if (!time) { setErr('도착 예정 시간을 선택해주세요'); return }
     setErr('')
 
-    const { error } = await supabase
-      .from('late_arrivals')
-      .upsert({ name: name.trim(), arrival_time: time, message: message.trim() }, { onConflict: 'name' })
+    const { error } = await supabase.rpc('upsert_late_arrival', {
+      p_name: name.trim(),
+      p_arrival_time: time,
+      p_message: message.trim() || null,
+    })
 
     if (error) { setErr('저장 실패: ' + error.message); return }
     setDone(true)

@@ -34,11 +34,14 @@ export default function PredictionsPage() {
   const [deleteModal, setDeleteModal] = useState(false)
   const [lateModal, setLateModal] = useState(false)
   const [adminPassword, setAdminPassword] = useState('')
-  const [editTarget, setEditTarget] = useState(null) // prediction object
+  const [editTarget, setEditTarget] = useState(null) // { pred, pin }
   const [editPinModal, setEditPinModal] = useState(null) // prediction object waiting for PIN
 
   const fetchPreds = useCallback(async () => {
-    const { data, error } = await supabase.from('predictions').select('*').order('created_at', { ascending: true })
+    const { data, error } = await supabase
+      .from('predictions')
+      .select('id, name, team, score_doosan, score_kia, cheer, created_at')
+      .order('created_at', { ascending: true })
     if (!error && data) setPreds(data)
   }, [])
 
@@ -199,13 +202,13 @@ export default function PredictionsPage() {
       </div>
 
       {modalOpen && createPortal(<PredModal onClose={() => setModalOpen(false)} onSaved={() => { setModalOpen(false); fetchPreds() }} />, document.body)}
-      {editPinModal && createPortal(<EditPinModal pred={editPinModal} onClose={() => setEditPinModal(null)} onSuccess={() => { setEditTarget(editPinModal); setEditPinModal(null) }} />, document.body)}
-      {editTarget && createPortal(<EditModal pred={editTarget} onClose={() => setEditTarget(null)} onSaved={() => { setEditTarget(null); fetchPreds() }} />, document.body)}
+      {editPinModal && createPortal(<EditPinModal pred={editPinModal} onClose={() => setEditPinModal(null)} onSuccess={(pin) => { setEditTarget({ pred: editPinModal, pin }); setEditPinModal(null) }} />, document.body)}
+      {editTarget && createPortal(<EditModal pred={editTarget.pred} pin={editTarget.pin} onClose={() => setEditTarget(null)} onSaved={() => { setEditTarget(null); fetchPreds() }} />, document.body)}
       {gearMenu && createPortal(<GearMenu onClose={() => setGearMenu(false)} onSelect={handleGearSelect} />, document.body)}
       {pinTarget && createPortal(<PinModal onClose={() => setPinTarget(null)} onSuccess={handlePinSuccess} />, document.body)}
       {scoreModal && createPortal(<ScoreModal score={score} password={adminPassword} onClose={() => setScoreModal(false)} onSaved={() => { setScoreModal(false); fetchScore() }} />, document.body)}
       {deleteModal && createPortal(<DeleteModal preds={preds} password={adminPassword} locked={score.predictions_locked} onClose={() => setDeleteModal(false)} onDeleted={fetchPreds} onToggleLock={fetchScore} />, document.body)}
-      {lateModal && createPortal(<LateListModal onClose={() => setLateModal(false)} />, document.body)}
+      {lateModal && createPortal(<LateListModal password={adminPassword} onClose={() => setLateModal(false)} />, document.body)}
     </div>
   )
 }
@@ -428,11 +431,20 @@ function PredModal({ onClose, onSaved }) {
     if (!team) miss.push('응원팀')
     if (pin.length !== 4 || !/^\d{4}$/.test(pin)) miss.push('수정 비밀번호 (숫자 4자리)')
     if (miss.length) { setErr('누락된 항목 → ' + miss.join(', ')); return }
-    const { error } = await supabase
-      .from('predictions')
-      .insert({ name: name.trim(), team, score_doosan: sd, score_kia: sk, cheer: cheer.trim() || null, pin })
+    const { data, error } = await supabase.rpc('create_prediction', {
+      p_name: name.trim(),
+      p_team: team,
+      p_score_doosan: sd,
+      p_score_kia: sk,
+      p_cheer: cheer.trim() || null,
+      p_pin: pin,
+    })
     if (error) {
       setErr(error.code === '23505' ? '이미 같은 이름으로 등록된 예측이 있어요.' : '저장에 실패했어요. 잠시 후 다시 시도해 주세요.')
+      return
+    }
+    if (data !== true) {
+      setErr('예측이 마감되어 저장할 수 없어요.')
       return
     }
     onSaved()
@@ -629,16 +641,13 @@ function EditPinModal({ pred, onClose, onSuccess }) {
     if (pin.length !== 4) { setErr('숫자 4자리를 입력해주세요'); return }
     setChecking(true)
     setErr('')
-    const { data } = await supabase
-      .from('predictions')
-      .select('id')
-      .eq('id', pred.id)
-      .eq('pin', pin)
-      .maybeSingle()
+    const { data, error } = await supabase.rpc('check_prediction_pin', {
+      p_id: pred.id,
+      p_pin: pin,
+    })
     setChecking(false)
-    if (!data) { setErr('비밀번호가 틀렸어요'); return }
-    pred._verifiedPin = pin
-    onSuccess()
+    if (error || data !== true) { setErr('비밀번호가 틀렸어요'); return }
+    onSuccess(pin)
   }
 
   return (
@@ -669,7 +678,7 @@ function EditPinModal({ pred, onClose, onSuccess }) {
   )
 }
 
-function EditModal({ pred, onClose, onSaved }) {
+function EditModal({ pred, pin, onClose, onSaved }) {
   const [name, setName] = useState(pred.name)
   const [team, setTeam] = useState(pred.team)
   const [sd, setSd] = useState(pred.score_doosan)
@@ -682,24 +691,24 @@ function EditModal({ pred, onClose, onSaved }) {
   async function save() {
     if (!name.trim()) { setErr('이름을 입력해주세요'); return }
     setSaving(true); setErr('')
-    const { data } = await supabase.rpc('update_prediction_by_pin', {
-      p_id: pred.id, p_pin: pred._verifiedPin,
+    const { data, error } = await supabase.rpc('update_prediction_by_pin', {
+      p_id: pred.id, p_pin: pin,
       p_name: name.trim(), p_team: team,
       p_score_doosan: sd, p_score_kia: sk,
-      p_message: cheer.trim() || null,
+      p_cheer: cheer.trim() || null,
     })
     setSaving(false)
-    if (!data) { setErr('수정에 실패했어요. 다시 시도해주세요.'); return }
+    if (error || data !== true) { setErr(error?.message || '수정에 실패했어요. 다시 시도해주세요.'); return }
     onSaved()
   }
 
   async function remove() {
     setSaving(true); setErr('')
-    const { data } = await supabase.rpc('delete_prediction_by_pin', {
-      p_id: pred.id, p_pin: pred._verifiedPin,
+    const { data, error } = await supabase.rpc('delete_prediction_by_pin', {
+      p_id: pred.id, p_pin: pin,
     })
     setSaving(false)
-    if (!data) { setErr('삭제에 실패했어요.'); return }
+    if (error || data !== true) { setErr(error?.message || '삭제에 실패했어요.'); return }
     onSaved()
   }
 
@@ -759,18 +768,18 @@ function EditModal({ pred, onClose, onSaved }) {
   )
 }
 
-function LateListModal({ onClose }) {
+function LateListModal({ password, onClose }) {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.from('late_arrivals').select('*').order('created_at', { ascending: true })
+    supabase.rpc('admin_list_late_arrivals', { p_password: password })
       .then(({ data }) => { setRows(data || []); setLoading(false) })
-  }, [])
+  }, [password])
 
   async function remove(name) {
-    await supabase.from('late_arrivals').delete().eq('name', name)
-    setRows(r => r.filter(x => x.name !== name))
+    const { data } = await supabase.rpc('admin_delete_late_arrival', { p_password: password, p_name: name })
+    if (data === true) setRows(r => r.filter(x => x.name !== name))
   }
 
   return (
