@@ -11,41 +11,47 @@ export default function FoodPage() {
         <div style={{ fontSize: 12, color: 'var(--g)', marginBottom: 12 }}>탭하면 상세 메뉴 & 위치 정보가 나와요</div>
 
         <div style={s.foodList}>
-          {FOOD_ITEMS.map((item, i) => (
-            <button
-              key={item.name}
-              type="button"
-              aria-expanded={open === i}
-              style={s.foodItem}
-              onClick={() => setOpen(open === i ? null : i)}
-            >
-              <div style={s.foodHeader}>
-                <span style={s.foodEmoji}>{item.emoji}</span>
-                <div style={s.foodMain}>
-                  <div style={s.foodName}>{item.name}</div>
-                  <div style={s.foodSub}>{item.sub}</div>
+          {FOOD_ITEMS.reduce((acc, item, i) => {
+            const prev = FOOD_ITEMS[i - 1]
+            if (!prev || prev.cat !== item.cat) {
+              acc.push(<div key={item.cat} style={s.catHdr}>{item.cat}</div>)
+            }
+            acc.push(
+              <button
+                key={item.name}
+                type="button"
+                aria-expanded={open === i}
+                style={s.foodItem}
+                onClick={() => setOpen(open === i ? null : i)}
+              >
+                <div style={s.foodHeader}>
+                  <span style={s.foodEmoji}>{item.emoji}</span>
+                  <div style={s.foodMain}>
+                    <div style={s.foodName}>{item.name}</div>
+                    <div style={s.foodSub}>{item.sub}</div>
+                  </div>
+                  <span style={{ ...s.foodArrow, transform: open === i ? 'rotate(90deg)' : 'none' }}>›</span>
                 </div>
-                <span style={{ ...s.foodArrow, transform: open === i ? 'rotate(90deg)' : 'none' }}>›</span>
-              </div>
-              {open === i && (
-                <div style={s.foodDetail}>
-                  <div style={s.foodLoc}>{item.loc}</div>
-                  <div style={s.foodMenu}>{item.menu}</div>
-                  <div style={s.foodTip}>{item.tip}</div>
-                </div>
-              )}
-            </button>
-          ))}
+                {open === i && (
+                  <div style={s.foodDetail}>
+                    <div style={s.foodLoc}>{item.loc}</div>
+                    <div style={s.foodMenu}>{item.menu}</div>
+                    <div style={s.foodTip}>{item.tip}</div>
+                  </div>
+                )}
+              </button>
+            )
+            return acc
+          }, [])}
         </div>
 
         <div style={s.tipCard}>
           <div style={s.tipTtl}>💡 먹거리 꿀팁</div>
           <ul style={s.tipList}>
-            <li><strong>1층엔 식당 없음</strong> — 음료·스낵 편의점만 있어요</li>
-            <li><strong>2층이 핵심</strong> — 주요 매장 대부분 2층에 위치</li>
-            <li>3층은 KFC·BBQ·와팡 등 2층과 겹치는 매장이 많아 줄이 짧아요</li>
-            <li>경기 시작 전 미리 사두기 — 이닝 중간엔 줄 2~3배 길어짐</li>
-            <li>새마을시장 (도보 15분) 포장해 오면 선택지가 훨씬 많아요</li>
+            <li><strong>경기 시작 전</strong>에 미리 사두기 — 이닝 중간엔 줄 2~3배 길어짐</li>
+            <li><strong>3층 매장</strong>은 같은 브랜드라도 줄이 훨씬 짧아요</li>
+            <li><strong>2.5층 브뤼셀프라이</strong>는 위치가 특이해요 — 계단 중간 층</li>
+            <li>이동성 중요하면 타코잇·잠실원샷·꼬치류 추천</li>
           </ul>
         </div>
       </div>
@@ -58,6 +64,7 @@ const s = {
   inner: { maxWidth: 640, margin: '0 auto' },
   secHdr: { fontSize: 22, fontWeight: 800, letterSpacing: '-.4px', marginBottom: 14 },
   foodList: { display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 },
+  catHdr: { fontSize: 13, fontWeight: 700, color: 'var(--g)', marginTop: 8, marginBottom: 2, paddingLeft: 2 },
   foodItem: { background: 'var(--card)', border: 'none', borderRadius: 'var(--r)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden', cursor: 'pointer', width: '100%', padding: 0, textAlign: 'left', fontFamily: 'var(--body)', color: 'inherit' },
   foodHeader: { display: 'flex', alignItems: 'center', gap: 12, padding: 14 },
   foodEmoji: { fontSize: 28, flexShrink: 0 },
