@@ -443,7 +443,7 @@ function PredModal({ onClose, onSaved }) {
       setErr(error.code === '23505' ? '이미 같은 이름으로 등록된 예측이 있어요.' : '저장에 실패했어요. 잠시 후 다시 시도해 주세요.')
       return
     }
-    if (data !== true) {
+    if (data === false) {
       setErr('예측이 마감되어 저장할 수 없어요.')
       return
     }
@@ -698,7 +698,7 @@ function EditModal({ pred, pin, onClose, onSaved }) {
       p_cheer: cheer.trim() || null,
     })
     setSaving(false)
-    if (error || data !== true) { setErr(error?.message || '수정에 실패했어요. 다시 시도해주세요.'); return }
+    if (error || data === false) { setErr(error?.message || '수정에 실패했어요. 다시 시도해주세요.'); return }
     onSaved()
   }
 
@@ -708,7 +708,7 @@ function EditModal({ pred, pin, onClose, onSaved }) {
       p_id: pred.id, p_pin: pin,
     })
     setSaving(false)
-    if (error || data !== true) { setErr(error?.message || '삭제에 실패했어요.'); return }
+    if (error || data === false) { setErr(error?.message || '삭제에 실패했어요.'); return }
     onSaved()
   }
 
