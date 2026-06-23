@@ -29,6 +29,7 @@ export default function EntryPage({ onNav }) {
               <div style={s.infoVal}>오후 6시 10분부터</div>
             </div>
           </div>
+          <img src="/basemap.jpg" alt="야구장 안내 지도" style={s.mapImg} />
         </div>
 
         {/* 늦은 도착 배너 */}
@@ -178,5 +179,6 @@ const s = {
   timeBtnSel: { background: 'rgba(255,109,0,.1)', borderColor: 'var(--y2)', color: 'var(--y2)' },
   ferr: { fontSize: 12, color: 'var(--k)', background: 'var(--k-light)', padding: '7px 10px', borderRadius: 'var(--rxs)', marginBottom: 8 },
   submitBtn: { width: '100%', padding: 14, background: 'var(--y2)', color: '#fff', border: 'none', borderRadius: 'var(--rs)', fontFamily: 'var(--body)', fontSize: 15, fontWeight: 700, cursor: 'pointer' },
+  mapImg: { width: '100%', borderRadius: 'var(--rxs)', marginTop: 12, display: 'block' },
   seatNavBtn: { marginTop: 12, width: '100%', padding: '11px 14px', background: 'rgba(27,45,110,.08)', border: '1px solid rgba(27,45,110,.2)', borderRadius: 'var(--rxs)', fontFamily: 'var(--body)', fontSize: 14, fontWeight: 700, color: 'var(--d)', cursor: 'pointer', textAlign: 'center' },
 }
