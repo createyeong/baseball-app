@@ -911,9 +911,8 @@ function TicketModal({ password, onClose }) {
   }
 
   return (
-    <div style={s.modalOv} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{ ...s.modalSheet, maxHeight: '88vh', overflowY: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        <div style={s.modalHandle} />
+    <div style={s.ticketFullOv}>
+      <div style={s.ticketFullSheet}>
         <div style={s.modalHdr}>
           <span style={s.modalTtl}>🎟️ 티켓 수령 관리</span>
           <button style={s.modalX} onClick={onClose}>✕</button>
@@ -1020,6 +1019,8 @@ const s = {
   topBadge: { color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 12px', textAlign: 'center' },
   pcBody: { display: 'grid', gridTemplateColumns: '44px 1fr 44px', alignItems: 'center', gap: 6, padding: '8px 12px' },
   editHint: { fontSize: 11, color: 'var(--g)', textAlign: 'center', marginTop: 10, padding: '6px 0' },
+  ticketFullOv: { position: 'fixed', inset: 0, zIndex: 300, background: 'var(--bg)', display: 'flex', flexDirection: 'column' },
+  ticketFullSheet: { display: 'flex', flexDirection: 'column', height: '100%', maxWidth: 560, width: '100%', margin: '0 auto' },
   ticketRow: { width: '100%', display: 'flex', alignItems: 'center', padding: '12px 14px', marginBottom: 6, background: 'var(--card)', border: '1px solid var(--sep)', borderRadius: 'var(--rxs)', cursor: 'pointer', fontFamily: 'var(--body)', textAlign: 'left' },
   ticketRowDone: { background: 'rgba(52,199,89,.08)', border: '1px solid rgba(52,199,89,.3)' },
   ticketGroupHdr: { fontSize: 11, fontWeight: 700, color: 'var(--g)', letterSpacing: '.4px', padding: '14px 2px 6px' },

@@ -115,13 +115,13 @@ function LateModal({ onClose, onSaved }) {
   }
 
   if (done) return (
-    <div style={s.modalOv}>
-      <div style={{ ...s.modalSheet, borderRadius: 'var(--r)', maxWidth: 360, margin: '0 auto 40px' }}>
+    <div style={s.fullOv}>
+      <div style={s.fullSheet}>
         <div style={s.modalHdr}>
           <span style={s.modalTtl}>✅ 등록 완료</span>
           <button style={s.modalX} onClick={onSaved}>✕</button>
         </div>
-        <div style={{ padding: '24px 18px', textAlign: 'center' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 18px', textAlign: 'center' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>🎉</div>
           <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>{selectedName}님 등록됐어요!</div>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--w)', marginBottom: 4 }}>도착 예정 {time}</div>
@@ -137,14 +137,13 @@ function LateModal({ onClose, onSaved }) {
   )
 
   return (
-    <div style={s.modalOv}>
-      <div style={s.modalSheet}>
-        <div style={s.modalHandle} />
+    <div style={s.fullOv}>
+      <div style={s.fullSheet}>
         <div style={s.modalHdr}>
           <span style={s.modalTtl}>⏰ 늦은 도착 등록</span>
           <button style={s.modalX} onClick={onClose}>✕</button>
         </div>
-        <div style={s.modalBody}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 18px 24px' }}>
           <div style={s.fg}>
             <label style={s.flbl}>이름 (명단에서 선택)</label>
             <div style={{ position: 'relative' }}>
@@ -215,6 +214,8 @@ const s = {
   lateBtn: { background: 'var(--y2)', color: '#fff', border: 'none', borderRadius: 'var(--rxs)', fontFamily: 'var(--body)', fontSize: 13, fontWeight: 700, padding: '9px 14px', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' },
   modalOv: { display: 'flex', position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,.4)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', alignItems: 'flex-end', justifyContent: 'center' },
   modalSheet: { background: 'rgba(250,250,252,.98)', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 560, maxHeight: '92vh', overflowY: 'auto', paddingBottom: 20, animation: 'up .3s cubic-bezier(.4,0,.2,1)' },
+  fullOv: { position: 'fixed', inset: 0, zIndex: 200, background: 'var(--bg)', display: 'flex', flexDirection: 'column' },
+  fullSheet: { display: 'flex', flexDirection: 'column', height: '100%', maxWidth: 560, width: '100%', margin: '0 auto' },
   modalHandle: { width: 36, height: 4, background: 'var(--card3)', borderRadius: 2, margin: '11px auto 0' },
   modalHdr: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 18px', borderBottom: '1px solid var(--sep)' },
   modalTtl: { fontSize: 16, fontWeight: 700, color: 'var(--w)' },
