@@ -33,13 +33,6 @@ export default function SeatsPage() {
         <div style={s.secHdr}>자리 <em style={{ color: 'var(--d)', fontStyle: 'normal' }}>안내</em></div>
         <div style={s.seatBadge}>중앙 네이비석 · 317구역</div>
 
-        {received.size > 0 && (
-          <div style={s.legendWrap}>
-            <span style={s.legendDot} />
-            <span style={s.legendTxt}>티켓 수령 완료</span>
-          </div>
-        )}
-
         {/* 검색 */}
         <div style={s.searchWrap}>
           <span style={s.searchIco}>🔍</span>
@@ -48,7 +41,7 @@ export default function SeatsPage() {
             style={s.searchInp}
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="이름으로 내 자리 찾기 (2글자 이상)"
+            placeholder="이름으로 내 자리 찾기"
           />
           {query && (
             <button style={s.searchX} onClick={() => { setQuery(''); inputRef.current?.focus() }}>✕</button>
@@ -57,7 +50,15 @@ export default function SeatsPage() {
 
         {/* 좌석 그리드 */}
         <div style={s.sgWrap}>
-          <div style={s.sgLbl}>좌석 배치도</div>
+          <div style={s.sgLblRow}>
+            <div style={s.sgLbl}>좌석 배치도</div>
+            {received.size > 0 && (
+              <div style={s.legendWrap}>
+                <span style={s.legendDot} />
+                <span style={s.legendTxt}>티켓 수령 완료</span>
+              </div>
+            )}
+          </div>
           <div style={s.sgCenter}>
           <div style={s.sg}>
             {ROWS.map((row, ri) => (
@@ -105,9 +106,10 @@ const s = {
   searchIco: { position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 15, color: 'var(--g)', pointerEvents: 'none' },
   searchX: { position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'var(--g)', border: 'none', borderRadius: '50%', width: 18, height: 18, color: '#fff', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 },
   sgWrap: { background: 'var(--card)', borderRadius: 'var(--r)', boxShadow: 'var(--shadow-sm)', padding: 14, marginBottom: 10, overflowX: 'auto' },
-  sgLbl: { fontSize: 10, fontWeight: 600, color: 'var(--g)', letterSpacing: '.6px', textTransform: 'uppercase', marginBottom: 10 },
+  sgLblRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  sgLbl: { fontSize: 10, fontWeight: 600, color: 'var(--g)', letterSpacing: '.6px', textTransform: 'uppercase' },
   sgCenter: { display: 'flex', justifyContent: 'center' },
-  sg: { display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 4, width: '100%', maxWidth: 520 },
+  sg: { display: 'grid', gridTemplateColumns: 'repeat(10, 46px)', gap: 4 },
   sgRl: { gridColumn: '1 / -1', fontSize: 9, color: 'var(--g)', padding: '4px 0 1px', fontWeight: 500 },
   sc: { aspectRatio: '1', background: 'rgba(27,45,110,.07)', border: '1px solid rgba(27,45,110,.2)', borderRadius: 5, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 2 },
   scHl: { background: 'rgba(255,149,0,.22)', border: '1px solid var(--y)', animation: 'glow .9s ease-in-out infinite alternate' },

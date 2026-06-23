@@ -933,6 +933,13 @@ function TicketModal({ password, onClose }) {
             filtered.map(({ no, name }) => <SeatRow key={no} no={no} name={name} />)
           ) : (
             <>
+              {/* 미수령 — 6:30 이전 도착 (늦은도착 데이터 없음) */}
+              {normalNotReceived.length > 0 && (
+                <div>
+                  <div style={s.ticketGroupHdr}>🕕 6:30 이전 도착</div>
+                  {normalNotReceived.map(({ no, name }) => <SeatRow key={no} no={no} name={name} />)}
+                </div>
+              )}
               {/* 미수령 — 늦은도착 시간대별 */}
               {lateGroups.map(({ slot, seats }) => (
                 <div key={slot}>
@@ -940,13 +947,6 @@ function TicketModal({ password, onClose }) {
                   {seats.map(({ no, name }) => <SeatRow key={no} no={no} name={name} />)}
                 </div>
               ))}
-              {/* 미수령 — 일반 */}
-              {normalNotReceived.length > 0 && (
-                <div>
-                  {lateGroups.length > 0 && <div style={s.ticketGroupHdr}>📋 미수령</div>}
-                  {normalNotReceived.map(({ no, name }) => <SeatRow key={no} no={no} name={name} />)}
-                </div>
-              )}
               {/* 수령 완료 */}
               {receivedSeats.length > 0 && (
                 <div>
@@ -1045,7 +1045,7 @@ const s = {
   modalHandle: { width: 36, height: 4, background: 'var(--card3)', borderRadius: 2, margin: '11px auto 0' },
   modalHdr: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 18px', borderBottom: '1px solid var(--sep)' },
   modalTtl: { fontSize: 16, fontWeight: 700, color: 'var(--w)' },
-  modalX: { background: 'var(--card2)', border: 'none', borderRadius: '50%', width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 },
+  modalX: { background: 'var(--card2)', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, color: 'var(--g)', fontWeight: 700, flexShrink: 0 },
   modalBody: { padding: '14px 18px' },
   flbl: { fontSize: 11, fontWeight: 600, color: 'var(--g)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 7, display: 'block' },
   finp: { width: '100%', background: 'var(--card2)', border: '1px solid var(--sep)', borderRadius: 'var(--rxs)', color: 'var(--w)', fontFamily: 'var(--body)', fontSize: 15, padding: '10px 12px', outline: 'none' },
