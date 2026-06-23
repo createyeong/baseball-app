@@ -35,7 +35,7 @@ export default function App() {
       <div style={s.pw}>
         <div style={{ ...s.slider, transform: `translateX(-${tab * 100}%)` }}>
           <HomePage onNav={setTab} />
-          <EntryPage />
+          <EntryPage onNav={setTab} />
           <SeatsPage />
           <PredictionsPage />
           <FoodPage />

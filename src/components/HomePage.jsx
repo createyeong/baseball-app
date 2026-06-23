@@ -26,7 +26,6 @@ export default function HomePage({ onNav }) {
             <InfoRow icon="🎟️" label="티켓 수령" value="오후 6시 10분" />
             <InfoRow icon="⚾" label="경기 시작" value="오후 6시 30분" />
             <InfoRow icon="📍" label="장소" value="잠실야구장" />
-            <InfoRow icon="🪑" label="좌석" value="317구역 · 중앙 네이비석" />
             <InfoRow icon="🚇" label="교통" value="종합운동장역 2·9호선" />
           </div>
         </div>

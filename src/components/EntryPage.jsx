@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 
 const TIME_SLOTS = ['6:45', '7:00', '7:15', '7:30', '7:45', '8:00 이후']
 
-export default function EntryPage() {
+export default function EntryPage({ onNav }) {
   const [modalOpen, setModalOpen] = useState(false)
 
   return (
@@ -19,7 +19,7 @@ export default function EntryPage() {
             <span style={s.infoIcon}>📍</span>
             <div>
               <div style={s.infoLbl}>수령 장소</div>
-              <div style={s.infoVal}>종합운동장역 6번 출구 앞 공터</div>
+              <div style={s.infoVal}>2-1 Gate 3루 출입구 앞</div>
             </div>
           </div>
           <div style={s.infoRow}>
@@ -46,19 +46,20 @@ export default function EntryPage() {
         <div style={s.card}>
           <div style={s.cardTitle}>🚪 입장 안내</div>
           <div style={s.infoRow}>
-            <span style={s.infoIcon}>🪑</span>
+            <span style={s.infoIcon}>🚪</span>
             <div>
-              <div style={s.infoLbl}>좌석</div>
-              <div style={s.infoVal}>317구역 · 중앙 네이비석</div>
+              <div style={s.infoLbl}>입장 게이트</div>
+              <div style={s.infoVal}>2-1 GATE · 3루 출입구</div>
             </div>
           </div>
           <div style={s.infoRow}>
-            <span style={s.infoIcon}>🚪</span>
+            <span style={s.infoIcon}>🪑</span>
             <div>
-              <div style={s.infoLbl}>게이트</div>
-              <div style={s.infoVal}>3루 쪽 게이트 이용</div>
+              <div style={s.infoLbl}>우리 좌석</div>
+              <div style={s.infoVal}>317구역 · 중앙 네이비석</div>
             </div>
           </div>
+          <button style={s.seatNavBtn} onClick={() => onNav(2)}>내 자리 확인하기 →</button>
         </div>
       </div>
 
@@ -177,4 +178,5 @@ const s = {
   timeBtnSel: { background: 'rgba(255,109,0,.1)', borderColor: 'var(--y2)', color: 'var(--y2)' },
   ferr: { fontSize: 12, color: 'var(--k)', background: 'var(--k-light)', padding: '7px 10px', borderRadius: 'var(--rxs)', marginBottom: 8 },
   submitBtn: { width: '100%', padding: 14, background: 'var(--y2)', color: '#fff', border: 'none', borderRadius: 'var(--rs)', fontFamily: 'var(--body)', fontSize: 15, fontWeight: 700, cursor: 'pointer' },
+  seatNavBtn: { marginTop: 12, width: '100%', padding: '11px 14px', background: 'rgba(27,45,110,.08)', border: '1px solid rgba(27,45,110,.2)', borderRadius: 'var(--rxs)', fontFamily: 'var(--body)', fontSize: 14, fontWeight: 700, color: 'var(--d)', cursor: 'pointer', textAlign: 'center' },
 }

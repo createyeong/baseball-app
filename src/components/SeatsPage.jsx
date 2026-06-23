@@ -16,6 +16,7 @@ export default function SeatsPage() {
     <div style={s.page}>
       <div style={s.inner}>
         <div style={s.secHdr}>자리 <em style={{ color: 'var(--d)', fontStyle: 'normal' }}>안내</em></div>
+        <div style={s.seatBadge}>중앙 네이비석 · 317구역</div>
 
         {/* 검색 */}
         <div style={s.searchWrap}>
@@ -34,7 +35,7 @@ export default function SeatsPage() {
 
         {/* 좌석 그리드 */}
         <div style={s.sgWrap}>
-          <div style={s.sgLbl}>중앙 네이비석 · 172–233 구역</div>
+          <div style={s.sgLbl}>좌석 배치도</div>
           <div style={s.sg}>
             {ROWS.map((row, ri) => (
               <Fragment key={ROW_LABELS[ri]}>
@@ -58,8 +59,8 @@ export default function SeatsPage() {
         {/* 좌석 안내 카드 */}
         <div style={s.gateCard}>
           <div style={s.gateT1}>입장 게이트</div>
-          <div style={s.gateT2}>3루 쪽 게이트 이용</div>
-          <div style={s.gateT3}>317구역 — 네이비석 중앙</div>
+          <div style={s.gateT2}>2-1 GATE</div>
+          <div style={s.gateT3}>3루 출입구</div>
         </div>
 
       </div>
@@ -70,7 +71,8 @@ export default function SeatsPage() {
 const s = {
   page: { flex: '0 0 100%', width: '100%', height: '100%', overflowY: 'auto', padding: '18px 14px 72px', scrollbarWidth: 'none' },
   inner: { maxWidth: 640, margin: '0 auto' },
-  secHdr: { fontSize: 22, fontWeight: 800, color: 'var(--w)', letterSpacing: '-.4px', marginBottom: 14 },
+  secHdr: { fontSize: 22, fontWeight: 800, color: 'var(--w)', letterSpacing: '-.4px', marginBottom: 8 },
+  seatBadge: { display: 'inline-block', background: 'rgba(27,45,110,.12)', border: '1px solid rgba(27,45,110,.25)', borderRadius: 20, padding: '5px 14px', fontSize: 15, fontWeight: 700, color: 'var(--d)', marginBottom: 14 },
   searchWrap: { position: 'relative', marginBottom: 12 },
   searchInp: { width: '100%', background: 'var(--card)', border: 'none', borderRadius: 'var(--rs)', boxShadow: 'var(--shadow-sm)', color: 'var(--w)', fontFamily: 'var(--body)', fontSize: 15, padding: '11px 38px 11px 36px', outline: 'none' },
   searchIco: { position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 15, color: 'var(--g)', pointerEvents: 'none' },
